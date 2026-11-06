@@ -1,14 +1,17 @@
 name: Build and deploy WellBridge AI to Azure App Service
+
+# Manual-only until the complete application source and Azure resources are in place.
 on:
-  push:
-    branches: [ main ]
   workflow_dispatch:
+
 permissions:
   id-token: write
   contents: read
+
 concurrency:
   group: wellbridge-production
   cancel-in-progress: false
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
