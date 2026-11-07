@@ -1,0 +1,29 @@
+name: WellBridge Azure OIDC Identity Test
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  verify-azure-identity:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Azure login using GitHub OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Verify Azure access
+        uses: azure/cli@v2
+        with:
+          inlineScript: |
+            az account show --output table
+            az group show \
+              --name rg-wellbridge-nigeria-dev \
+              --output table
+              
