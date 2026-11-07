@@ -1,0 +1,34 @@
+
+name: WellBridge OIDC Claims Diagnostic
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  inspect-claims:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Inspect GitHub OIDC claims safely
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const token = await core.getIDToken(
+              'api://AzureADTokenExchange'
+            );
+
+            const payload = JSON.parse(
+              Buffer.from(token.split('.')[1], 'base64url').toString()
+            );
+
+            core.info(JSON.stringify({
+              issuer: payload.iss,
+              subject: payload.sub,
+              audience: payload.aud,
+              repository: payload.repository,
+              ref: payload.ref
+            }, null, 2));
+            
