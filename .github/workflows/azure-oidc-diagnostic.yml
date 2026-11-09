@@ -31,4 +31,3 @@ jobs:
               repository: payload.repository,
               ref: payload.ref
             }, null, 2));
-            
