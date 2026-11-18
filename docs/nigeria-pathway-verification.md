@@ -177,3 +177,33 @@ The official Lagos State Health District VI website identifies the district as t
 Send a written request to the district at the published email addresses, asking it to confirm the current facility name, address, facility manager/official contact, opening days/hours, operational status, MeHPriC participation, mental-health services actually delivered, trained staff availability, age eligibility, fees, walk-in/appointment process, referral hospital and escalation/fallback arrangements for each of the three PHCs. Ask for a dated official roster or written confirmation and the appropriate district officer responsible for mental-health integration.
 
 **Do not classify any of the three facilities as verified-active until the district or facility management directly confirms the service details and the confirmation date and representative are logged.**
+
+
+### Referral-hub research update — 18 November 2026
+
+**Published programme model**
+- Lagos MiND's current facilities directory states that the MeHPriC flagship PHCs were grouped into clusters and assigned to specific State General Hospitals, which act as district points for referral and transition of care: https://www.lagosmind.org/facilities/
+- Lagos MiND's Integrated Mental Health Project article (published 16 February 2022) says five general hospitals had integrated community-based mental-health services in 2018, with psychiatrist-led units supervising flagship PHCs in the hub-and-spoke model: https://lagosmind.org/post-integrated-mental-health-project
+- The five published general-hospital referral hubs are Alimosho General Hospital (Igando Road, Ikotun), Gbagada General Hospital (Hospital Road, Gbagada), Lagos Island General Hospital (Broad Street, Lagos), Ikorodu General Hospital (TOS Benson Road, Ikorodu), and Epe General Hospital (Hospital Road, Epe).
+- Lagos MiND's directory separately lists LASUTH, 1 Oba Akinjobi Way, GRA, Ikeja, as a tertiary hospital; it should not be confused with one of the five general-hospital hubs.
+- **Critical gap:** the publicly retrievable directory and programme article do not disclose the PHC-to-hospital cluster assignment matrix. No source reviewed establishes which hub is assigned to Onilekere PHC, Oregun PHC or Ojodu PHC. Geographic proximity is not evidence of formal assignment.
+- **Status:** referral model and five hub identities officially published; individual PHC cluster assignment, current service operation, acceptance procedure, opening hours, fees and contact routing remain unconfirmed.
+
+**Health District VI administrative contact**
+- Official district website: https://lshdvi.org/
+- Official district contact page: https://lshdvi.org/contact
+- Published district emails: phcdistrict6@gmail.com; Phed-vi@Lagosstate.gov.ng
+- Published office address: No. 6, Ashabi Cole Street, Ikeja, Lagos, Nigeria.
+- District VI's official website describes its role coordinating, supervising and delivering public healthcare through government facilities in its jurisdiction and lists Ikeja, Onigbongbo and Ojodu among its coverage areas: https://lshdvi.org/about
+- The website does not publish a mental-health-specific referral matrix or confirm MeHPriC services at the three candidate facilities.
+
+**Next verification request — cluster assignment matrix**
+Request a dated, current written response from Lagos MiND and Lagos State Health District VI identifying, for each of Onilekere PHC, Oregun PHC and Ojodu PHC:
+1. The formally assigned State General Hospital referral hub and whether the assignment is still current.
+2. The mental-health unit/department and referral coordinator at that hospital.
+3. The services currently delivered at the PHC and hospital, including whether psychiatrist review is available and on which days.
+4. The referral acceptance process, required documentation, appointment/walk-in rules, fees and hours.
+5. The process for urgent presentations outside routine clinic hours and the appropriate emergency service.
+6. A named institutional role/contact for periodic verification and a date-stamped source document or confirmation.
+
+**Do not publish a PHC-to-hospital referral link in WellBridge AI until the assignment and receiving hospital's acceptance process are confirmed directly.** Do not imply that a general hospital is an emergency mental-health service merely because it is a listed referral hub.
