@@ -104,7 +104,7 @@ Suggested statuses: research-only, officially-published, direct-confirmation-pen
 
 ## 7. Immediate actions
 
-1. Request written confirmation from Lagos State Ministry of Health / Lagos MiND for the Lagos Lifeline numbers, operating hours, operator, staffing, escalation and referral arrangements.
+1. Request written confirmation from Lagos State Ministry of Health / Lagos MiND for the Lagos Lifeline numbers, operating hours, operator, staffing, escalation and referral arrangements. The Lagos State Government Ministry of Health page publishes health@lagosstate.gov.ng and +234 909 000 6463 as contact details: https://lagosstate.gov.ng/health/ .
 2. Contact Federal Neuro-Psychiatric Hospital Yaba through its published general contact channels to confirm emergency-unit access, current address, fees and contact routing.
 3. Ask the Lagos State Primary Health Care Board to confirm the current PHC mental-health service network and district referral hospitals.
 4. Define a credential-check procedure for each professional category before listing individual practitioners.
