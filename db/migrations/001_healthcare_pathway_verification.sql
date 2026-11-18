@@ -28,7 +28,7 @@ CREATE TABLE organisations (
   country_id uuid NOT NULL REFERENCES countries(id),
   name text NOT NULL,
   organisation_type text NOT NULL CHECK (organisation_type IN
-    ('government_authority','health_district','hospital_operator','clinic_operator','helpline_operator','professional_regulator','ngo','other')),
+    ('government_authority','health_district','hospital_operator','clinic_operator','helpline_operator','professional_regulator','communications_regulator','ngo','other')),
   official_website text,
   general_contact_email text,
   general_contact_phone text,
