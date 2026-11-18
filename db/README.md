@@ -7,6 +7,7 @@
 1. `migrations/001_healthcare_pathway_verification.sql` — core register tables.
 2. `migrations/002_contact_channels_and_area_authorities.sql` — multiple service contact channels and separate administrative oversight records.
 3. `seeds/001_nigeria_lagos_candidates.sql` — cautious Nigeria/Lagos desk-research candidates.
+4. `seeds/002_candidate_evidence_links.sql` — attaches public-source review events to the candidate organisations, facilities and services.
 
 Apply only to a disposable PostgreSQL development database after reviewing the SQL. Do not run against production.
 
@@ -20,12 +21,13 @@ The seed script is designed to create, if absent:
 - 4 service records: national 112, Lagos LASEMA emergency lines, Lagos Lifeline and MeHPriC.
 - 7 contact channels: 112, 767, Lagos Lifeline's two voice numbers, WhatsApp and email (the emergency service rows include both national and Lagos 112 as separate records).
 - Public evidence-source records for the relevant government, programme and facility pages.
+- Public-source review events linked to the relevant candidate entities; these are not direct confirmations.
 
 The script is intended to be repeatable and checks for existing records before inserting. Review it against the actual database state before execution.
 
 ## Initial quality checks
 
-After applying the migrations and seed script, use read-only checks:
+After applying migrations 001 and 002, then seed scripts 001 and 002, use read-only checks:
 
 ```sql
 SELECT iso2, name FROM countries WHERE iso2 = 'NG';
@@ -51,6 +53,10 @@ ORDER BY a.name, o.name;
 
 SELECT count(*) AS referral_relationships FROM referral_relationships;
 SELECT count(*) AS facility_service_links FROM facility_services;
+SELECT entity_type, outcome, count(*)
+FROM verification_events
+GROUP BY entity_type, outcome
+ORDER BY entity_type, outcome;
 ```
 
 The last two counts should be zero in this initial seed. That is intentional: the current evidence does not establish facility-level mental-health service availability or formal PHC-to-hospital cluster assignments.
