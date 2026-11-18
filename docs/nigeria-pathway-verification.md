@@ -34,14 +34,16 @@ Do not use this register as a clinical protocol. WellBridge AI is not an emergen
 
 ## 2. Mental-health crisis and psychosocial support
 
-### Lagos Lifeline — numbers published by Lagos State
+### Lagos Lifeline — Lagos MiND published contact channels
 
-- **Numbers announced by Lagos State Government:** 0700 000 6463 and 090 9000 6463.
-- **Government announcement (12 October 2024):** https://lagosstate.gov.ng/news/Health%20Services/view/6722bfa71415802f26321399
-- **Service information published by Lagos MiND:** https://lagosmind.org/lagos-lifeline/
-- **What the sources establish:** Lagos State announced the helpline numbers as part of its mental-health support initiative. Lagos MiND describes the Lifeline as a counselling and psychosocial support service and states that it operates 24/7.
-- **Important limitation:** The 24/7 service description is published by Lagos MiND; this desk review has not independently tested either number or obtained direct current confirmation from the responsible service operator. Do not assume that a call will be answered or that a counsellor is available at all times.
-- **Register status:** government-announced / operator-confirmation-and-live-test-pending
+- **Voice helpline:** 070 0000 6463 and 020 1410 6463.
+- **WhatsApp:** 090 9000 6463.
+- **Email:** help@lagosmind.org.
+- **Current service pages:** https://www.lagosmind.org/lagos-lifeline/ and https://www.lagosmind.org/contact
+- **Lagos State Government announcement (12 October 2024):** https://lagosstate.gov.ng/news/Health%20Services/view/6722bfa71415802f26321399
+- **What the sources establish:** Lagos State announced the 0700 000 6463 and 090 9000 6463 numbers in October 2024. The current Lagos MiND pages additionally publish 020 1410 6463 as a voice helpline and identify 090 9000 6463 as WhatsApp. Lagos MiND describes the service as free, confidential and available 24 hours daily, with trained counsellors and onward referral.
+- **Important limitation:** These are current public claims made by the service's own website, not an independent live test or direct written confirmation received by WellBridge AI. Do not imply WellBridge AI has tested the lines or has a formal partnership. Obtain direct confirmation of operator, staffing and qualifications, hours, costs, languages, confidentiality limits, escalation and referral arrangements before activation.
+- **Register status:** officially-published / direct-operator-confirmation-and-live-test-pending
 - **Required before publication:** Obtain written confirmation from Lagos State Ministry of Health or the authorised operator covering ownership, active numbers, hours, staffing/qualification, cost, languages, eligibility, confidentiality limits, escalation procedure, referral arrangements, and downtime fallback. Conduct an agreed non-emergency test call; never test by simulating a crisis.
 
 ## 3. Specialist mental-health facilities
@@ -50,7 +52,9 @@ Do not use this register as a clinical protocol. WellBridge AI is not an emergen
 
 - **Official hospital website:** https://fnphyaba.gov.ng/
 - **Official contact numbers displayed on the hospital website:** +234 815 517 0000; +234 906 000 1907.
-- **Official patient information:** https://mail.fnphyaba.gov.ng/health-information/
+- **Official email:** enquiries@fnphyaba.gov.ng.
+- **Published address:** 8 Harvey Road, Yaba, Lagos, Nigeria.
+- **Official patient information:** https://fnphyaba.gov.ng/health-information/
 - **Clinic days:** https://www.fnphyaba.gov.ng/our-clinic-days/
 - **Federal Ministry of Health specialty-hospital listing:** https://health.gov.ng/specialty-hospitals/
 - **What the sources establish:** The hospital identifies itself as a specialist mental-health provider. Its patient information page states that its emergency unit operates 24 hours daily and that first-time patients may enter through the emergency or amenity departments. The hospital publishes outpatient clinic schedules.
@@ -62,8 +66,9 @@ Do not use this register as a clinical protocol. WellBridge AI is not an emergen
 
 ### Lagos primary healthcare centres and district referral facilities
 
-- **Lagos MiND facilities directory:** https://lagosmind.org/facilities/
-- **What the source states:** It describes the Mental Health in Primary Care (MeHPriC) programme, developed with Lagos State Ministry of Health support, and reports training of healthcare workers across 57 flagship primary healthcare centres. It describes PHC clusters linked to state general hospitals as district referral points and lists candidate PHCs and general hospitals.
+- **Lagos MiND facilities directory:** https://www.lagosmind.org/facilities/
+- **MeHPriC programme information:** https://www.lagosmind.org/mehpric
+- **What the sources state:** Lagos MiND describes the Mental Health in Primary Care (MeHPriC) programme and reports implementation across 57 flagship PHCs. It describes individual care, screening and group therapy at PHCs, plus tele-mental-health access through Lagos Lifeline. Its facilities directory lists general hospitals as district referral points and names candidate PHCs and general hospitals.
 - **Important limitation:** A directory entry or historic training report does not establish that a particular PHC currently has a trained mental-health worker, that the service is available today, or that a referral is accepted.
 - **Register status:** network-candidate / facility-level-confirmation-pending
 - **Required before publication:** Verify each facility's current operating status, mental-health service scope, opening hours, accessibility, fees, referral destination and named institutional contact with the Lagos State Primary Health Care Board or relevant facility management.
@@ -104,8 +109,8 @@ Suggested statuses: research-only, officially-published, direct-confirmation-pen
 
 ## 7. Immediate actions
 
-1. Request written confirmation from Lagos State Ministry of Health / Lagos MiND for the Lagos Lifeline numbers, operating hours, operator, staffing, escalation and referral arrangements. The Lagos State Government Ministry of Health page publishes health@lagosstate.gov.ng and +234 909 000 6463 as contact details: https://lagosstate.gov.ng/health/ .
-2. Contact Federal Neuro-Psychiatric Hospital Yaba through its published general contact channels to confirm emergency-unit access, current address, fees and contact routing.
+1. The user reports that a verification request has been sent to Lagos State Ministry of Health at health@lagosstate.gov.ng. Await and log its response. Lagos MiND also publishes help@lagosmind.org for service enquiries and partnership requests.
+2. Contact Federal Neuro-Psychiatric Hospital Yaba at enquiries@fnphyaba.gov.ng or +234 815 517 0000 / +234 906 000 1907 to confirm emergency-unit access, current address, fees and contact routing.
 3. Ask the Lagos State Primary Health Care Board to confirm the current PHC mental-health service network and district referral hospitals.
 4. Define a credential-check procedure for each professional category before listing individual practitioners.
 5. Keep all entries in research-only or direct-confirmation-pending until the required evidence is obtained.
