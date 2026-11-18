@@ -110,7 +110,7 @@ Suggested statuses: research-only, officially-published, direct-confirmation-pen
 ## 7. Immediate actions
 
 1. The user reports that a verification request has been sent to Lagos State Ministry of Health at health@lagosstate.gov.ng. Await and log its response. Lagos MiND also publishes help@lagosmind.org for service enquiries and partnership requests.
-2. Contact Federal Neuro-Psychiatric Hospital Yaba at enquiries@fnphyaba.gov.ng or +234 815 517 0000 / +234 906 000 1907 to confirm emergency-unit access, current address, fees and contact routing.
+2. The user reports that a verification email has been sent to Federal Neuro-Psychiatric Hospital Yaba at enquiries@fnphyaba.gov.ng. Await and log its response; if no reply arrives, follow up through the hospital's published telephone contacts.
 3. Ask the Lagos State Primary Health Care Board to confirm the current PHC mental-health service network and district referral hospitals.
 4. Define a credential-check procedure for each professional category before listing individual practitioners.
 5. Keep all entries in research-only or direct-confirmation-pending until the required evidence is obtained.
