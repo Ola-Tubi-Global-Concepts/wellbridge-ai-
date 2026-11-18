@@ -8,6 +8,7 @@ export default function CheckInPage() {
   const [choice, setChoice] = useState("");
   const [shown, setShown] = useState(false);
   const [safetyChoice, setSafetyChoice] = useState<SafetyChoice | "">("");
+  const [safetySkipped, setSafetySkipped] = useState(false);
 
   const wellbeingGuidance =
     choice === "good"
@@ -18,6 +19,7 @@ export default function CheckInPage() {
     setChoice(value);
     setShown(false);
     setSafetyChoice("");
+    setSafetySkipped(false);
   }
 
   return (
@@ -54,6 +56,7 @@ export default function CheckInPage() {
           onClick={() => {
             setShown(true);
             setSafetyChoice("");
+            setSafetySkipped(false);
           }}
         >
           View general guidance
@@ -103,6 +106,30 @@ export default function CheckInPage() {
                 No, I don't feel safe.
               </label>
             </fieldset>
+
+            <button
+              type="button"
+              className="button secondary"
+              onClick={() => {
+                setSafetySkipped(true);
+                setSafetyChoice("");
+              }}
+            >
+              Skip this question and view general guidance
+            </button>
+
+            {safetySkipped && (
+              <div className="notice" role="status">
+                <strong>General supportive guidance</strong>
+                <p>{wellbeingGuidance}</p>
+                <p>
+                  If you feel unsafe or may harm yourself or someone else,
+                  seek immediate in-person help from local emergency services
+                  or the nearest hospital. WellBridge AI is not monitored and
+                  cannot contact anyone or arrange help.
+                </p>
+              </div>
+            )}
 
             {safetyChoice === "safe" && (
               <div className="notice" role="status">
