@@ -8,6 +8,7 @@
 2. `migrations/002_contact_channels_and_area_authorities.sql` — multiple service contact channels and separate administrative oversight records.
 3. `seeds/001_nigeria_lagos_candidates.sql` — cautious Nigeria/Lagos desk-research candidates.
 4. `seeds/002_candidate_evidence_links.sql` — attaches public-source review events to the candidate organisations, facilities and services.
+5. `seeds/003_additional_official_sources.sql` — adds Lagos State agency-directory and emergency-contact evidence.
 
 Apply only to a disposable PostgreSQL development database after reviewing the SQL. Do not run against production.
 
@@ -27,7 +28,7 @@ The script is intended to be repeatable and checks for existing records before i
 
 ## Initial quality checks
 
-After applying migrations 001 and 002, then seed scripts 001 and 002, use read-only checks:
+After applying migrations 001 and 002, then seed scripts 001, 002 and 003, use read-only checks:
 
 ```sql
 SELECT iso2, name FROM countries WHERE iso2 = 'NG';
