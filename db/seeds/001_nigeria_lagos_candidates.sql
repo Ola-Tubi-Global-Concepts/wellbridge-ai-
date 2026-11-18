@@ -95,7 +95,7 @@ BEGIN
     ('Lagos State Primary Health Care Board','government_authority','https://lagosstate.gov.ng/health/','officially_published','Responsible state PHC agency identified by Lagos State sources; current PHC roster and allocations requested, confirmation pending.'),
     ('Lagos State Health District VI','health_district','https://lshdvi.org/','officially_published','Separate health district administration; published coverage includes Ikeja, Onigbongbo and Ojodu. Its precise role for each PHC requires written clarification.'),
     ('Lagos MiND','helpline_operator','https://www.lagosmind.org/','officially_published','Publishes MeHPriC and Lagos Lifeline information; direct service/operator confirmation pending.'),
-    ('Nigerian Communications Commission','professional_regulator','https://ncc.gov.ng/','officially_published','Publishes national emergency numbering information; not an emergency dispatch operator.'),
+    ('Nigerian Communications Commission','communications_regulator','https://ncc.gov.ng/','officially_published','Publishes national emergency numbering information; not an emergency dispatch operator.'),
     ('Lagos State Emergency Management Agency (LASEMA)','government_authority','https://www.lagosstate.gov.ng/','officially_published','Lagos State publishes emergency lines associated with LASEMA; live operation and mental-health dispatch details pending.'),
     ('Federal Neuro-Psychiatric Hospital Yaba','hospital_operator','https://fnphyaba.gov.ng/','officially_published','Specialist mental-health facility candidate; verification email response pending.')
   ) AS x(name,kind,website,status,notes)
@@ -109,25 +109,25 @@ BEGIN
   SELECT id INTO v_fnp_yaba FROM organisations WHERE country_id=v_country AND name='Federal Neuro-Psychiatric Hospital Yaba' LIMIT 1;
 
   INSERT INTO facilities (organisation_id,country_id,administrative_area_id,official_name,facility_type,address,verification_status,operating_status)
-  SELECT NULL,v_country,x.area_id,x.name,x.kind,x.address,'officially_published','unknown'
+  SELECT x.org_id,v_country,x.area_id,x.name,x.kind,x.address,'officially_published','unknown'
   FROM (VALUES
-    (v_ikeja,'Onilekere PHC','primary_health_centre','11 Ogunsolu Street, Cement Bus-Stop, Ikeja'),
-    (v_onigbongbo,'Oregun PHC','primary_health_centre','32/34 Kudirat Abiola Way, Oregun, Lagos'),
-    (v_ojodu,'Ojodu PHC','primary_health_centre','31 Gbadamosi Street, Ojodu'),
-    (NULL::uuid,'Alimosho General Hospital','general_hospital','Igando Road, Ikotun, Lagos'),
-    (NULL::uuid,'Gbagada General Hospital','general_hospital','Hospital Road, Gbagada, Lagos'),
-    (NULL::uuid,'Lagos Island General Hospital','general_hospital','Broad Street, Lagos Island, Lagos'),
-    (NULL::uuid,'Ikorodu General Hospital','general_hospital','TOS Benson Road, Ikorodu, Lagos'),
-    (NULL::uuid,'Epe General Hospital','general_hospital','Hospital Road, Epe, Lagos'),
-    (NULL::uuid,'Lagos State University Teaching Hospital (LASUTH)','teaching_hospital','1 Oba Akinjobi Way, GRA, Ikeja, Lagos'),
-    (NULL::uuid,'Federal Neuro-Psychiatric Hospital Yaba','specialist_hospital','8 Harvey Road, Yaba, Lagos')
-  ) AS x(area_id,name,kind,address)
+    (NULL::uuid,v_ikeja,'Onilekere PHC','primary_health_centre','11 Ogunsolu Street, Cement Bus-Stop, Ikeja'),
+    (NULL::uuid,v_onigbongbo,'Oregun PHC','primary_health_centre','32/34 Kudirat Abiola Way, Oregun, Lagos'),
+    (NULL::uuid,v_ojodu,'Ojodu PHC','primary_health_centre','31 Gbadamosi Street, Ojodu'),
+    (NULL::uuid,NULL::uuid,'Alimosho General Hospital','general_hospital','Igando Road, Ikotun, Lagos'),
+    (NULL::uuid,NULL::uuid,'Gbagada General Hospital','general_hospital','Hospital Road, Gbagada, Lagos'),
+    (NULL::uuid,NULL::uuid,'Lagos Island General Hospital','general_hospital','Broad Street, Lagos Island, Lagos'),
+    (NULL::uuid,NULL::uuid,'Ikorodu General Hospital','general_hospital','TOS Benson Road, Ikorodu, Lagos'),
+    (NULL::uuid,NULL::uuid,'Epe General Hospital','general_hospital','Hospital Road, Epe, Lagos'),
+    (NULL::uuid,NULL::uuid,'Lagos State University Teaching Hospital (LASUTH)','teaching_hospital','1 Oba Akinjobi Way, GRA, Ikeja, Lagos'),
+    (v_fnp_yaba,NULL::uuid,'Federal Neuro-Psychiatric Hospital Yaba','specialist_hospital','8 Harvey Road, Yaba, Lagos')
+  ) AS x(org_id,area_id,name,kind,address)
   WHERE NOT EXISTS (SELECT 1 FROM facilities f WHERE f.country_id=v_country AND lower(f.official_name)=lower(x.name) AND coalesce(lower(f.address),'')=lower(x.address));
 
   INSERT INTO services (organisation_id,service_name,service_category,description,verification_status,scope_limitations)
   SELECT x.org_id,x.name,x.category,x.description,'officially_published',x.limitations
   FROM (VALUES
-    (v_ncc,'Nigeria national emergency number 112','emergency_response','112 is published as Nigeria national emergency number.','Number allocation/publication does not establish local call answering, coverage, dispatch capability or response time.'),
+    (NULL,'Nigeria national emergency number 112','emergency_response','112 is published as Nigeria national emergency number.','Number allocation/publication does not establish local call answering, coverage, dispatch capability or response time.'),
     (v_lasema,'Lagos State LASEMA emergency lines 767 / 112','emergency_response','Lagos State publishes 767 and 112 as emergency contact numbers associated with LASEMA.','Current call-answering, dispatch coverage and mental-health emergency handling remain unconfirmed.'),
     (v_lagos_mind,'Lagos Lifeline','crisis_helpline','Lagos MiND publishes voice, WhatsApp and email channels and describes free, confidential 24-hour support.','Operator claims have not been directly confirmed or live-tested by WellBridge AI; no partnership is implied.'),
     (v_lagos_mind,'MeHPriC primary-care mental-health programme','screening','Lagos MiND describes screening, individual care and group therapy through a network of flagship PHCs.','Programme-level description only; no facility-level service is confirmed by this seed.')
