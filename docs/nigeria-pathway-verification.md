@@ -73,6 +73,41 @@ Do not use this register as a clinical protocol. WellBridge AI is not an emergen
 - **Register status:** network-candidate / facility-level-confirmation-pending
 - **Required before publication:** Verify each facility's current operating status, mental-health service scope, opening hours, accessibility, fees, referral destination and named institutional contact with the Lagos State Primary Health Care Board or relevant facility management.
 
+
+### PHC network desk-research update — 18 November 2026
+
+**Primary Health Care Board authority and current government context**
+- Lagos State Government agency directory identifies the Lagos State Primary Health Care Board (LSPHCB) as the responsible state agency: https://citizensgate.lagosstate.gov.ng/lasg_das.php
+- Lagos State Government reported a Board-led PHC leadership dialogue on 12 January 2026, identifying the Board's Permanent Secretary as Dr. Ibrahim Akinwunmi Mustafa and describing its technical leadership, coordination and oversight role: https://lagosstate.gov.ng/news/all/view/69676b5c88319a643b759315
+- Lagos State Ministry of Health publishes a PHC facilities page and describes six PHC districts, but that page is an older directory and must not be treated as the definitive current mental-health service roster: https://lagosministryofhealth.org/primary-health-facilities/
+- The official Lagos MiND facilities directory currently describes 57 flagship PHCs, five general-hospital district referral points and one tertiary hospital. It lists candidate facility names and addresses: https://www.lagosmind.org/facilities/
+- Lagos MiND's MeHPriC page currently describes individual care, screening and group therapy at PHCs, plus tele-mental-health via Lagos Lifeline. These are programme-published claims pending confirmation from LSPHCB and each facility: https://lagosmind.org/mehpric
+
+**Priority candidate PHCs for initial facility-level verification — Ikeja area**
+These are listed in the Lagos MiND 57-facility directory. They are candidates only; no live service availability is confirmed.
+
+| LGA/LCDA | Candidate PHC | Published address | Verification status |
+|---|---|---|---|
+| Ikeja LGA | Onilekere PHC | 11 Ogunsolu Street, Cement Bus-Stop, Ikeja | facility confirmation pending |
+| Onigbongbo LCDA | Oregun PHC | 32/34 Kudirat Abiola Way, Oregun, Lagos | facility confirmation pending |
+| Ojodu LCDA | Ojodu PHC | 31 Gbadamosi Street, Ojodu | facility confirmation pending |
+
+**Other district referral candidates published by Lagos MiND**
+- Alimosho General Hospital — Igando Road, Ikotun.
+- Gbagada General Hospital — Hospital Road, Gbagada.
+- Lagos Island General Hospital — Broad Street, Lagos.
+- Ikorodu General Hospital — TOS Benson Road, Ikorodu.
+- Epe General Hospital — Hospital Road, Epe.
+- Lagos State University Teaching Hospital (LASUTH) — 1 Oba Akinjobi Way, GRA, Ikeja (tertiary facility).
+All remain candidate referral destinations until their mental-health service scope, current contact route, acceptance process, hours and fees are directly confirmed.
+
+**Important roster caution**
+The Lagos MiND page labels its list as 57 flagship PHCs, while the publicly indexed page content is presented across more than one page/result and may not expose every row in a single retrieval. Do not infer that a partial extracted list is the complete 57-facility roster. Request the current signed/dated roster directly from LSPHCB and reconcile facility names, LGAs/LCDAs, addresses and referral clusters before building the production directory.
+
+**Board contact routing**
+The official Lagos State Ministry of Health contact page publishes health@lagosstate.gov.ng and identifies the Board as a state health agency: https://lagosstate.gov.ng/health/
+No independently confirmed direct LSPHCB email or telephone number has been established in this research. Do not use third-party directory contacts without official confirmation.
+
 ## 5. Practitioner credential verification
 
 ### Medical and Dental Council of Nigeria (MDCN)
@@ -111,7 +146,7 @@ Suggested statuses: research-only, officially-published, direct-confirmation-pen
 
 1. The user reports that a verification request has been sent to Lagos State Ministry of Health at health@lagosstate.gov.ng. Await and log its response. Lagos MiND also publishes help@lagosmind.org for service enquiries and partnership requests.
 2. The user reports that a verification email has been sent to Federal Neuro-Psychiatric Hospital Yaba at enquiries@fnphyaba.gov.ng. Await and log its response; if no reply arrives, follow up through the hospital's published telephone contacts.
-3. Ask the Lagos State Primary Health Care Board to confirm the current PHC mental-health service network and district referral hospitals.
+3. The user reports that a follow-up request has been sent to health@lagosstate.gov.ng for routing to LSPHCB. Await and log its response. In the meantime, treat Onilekere PHC, Oregun PHC and Ojodu PHC as initial Ikeja-area candidates only; request the complete current 57-PHC roster and confirm each facility and referral cluster directly.
 4. Define a credential-check procedure for each professional category before listing individual practitioners.
 5. Keep all entries in research-only or direct-confirmation-pending until the required evidence is obtained.
 
