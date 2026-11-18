@@ -151,3 +151,29 @@ Suggested statuses: research-only, officially-published, direct-confirmation-pen
 5. Keep all entries in research-only or direct-confirmation-pending until the required evidence is obtained.
 
 **No live provider directory, referral, or crisis escalation should be enabled solely on the basis of this desk research.**
+
+
+### Facility-level verification route — Lagos State Health District VI (18 November 2026)
+
+The official Lagos State Health District VI website identifies the district as the administrative body coordinating, supervising and delivering public healthcare through government facilities in its jurisdiction. Its published coverage includes Ikeja LGA, Onigbongbo LCDA and Ojodu LCDA, which covers all three priority candidate PHCs in this initial batch.
+
+- **Official district website:** https://lshdvi.org/
+- **Published district office address:** No. 6, Ashabi Cole Street, Ikeja, Lagos, Nigeria.
+- **Published district email addresses:** phcdistrict6@gmail.com; Phed-vi@Lagosstate.gov.ng.
+- **Direct telephone:** No district telephone number was displayed on the official district website at the time of review; do not substitute third-party numbers.
+- **District contact page:** https://lshdvi.org/contact
+- **District service/coverage page:** https://lshdvi.org/about
+- **What this establishes:** District VI is an appropriate official administrative contact for seeking confirmation about Onilekere PHC, Oregun PHC and Ojodu PHC. The district website lists general PHC services, but does not independently establish that any of these three facilities currently provides MeHPriC mental-health services.
+- **Register status:** official-district-contact-published / facility-and-mental-health-service-confirmation-pending.
+
+**Facility identity checks**
+- Onilekere PHC is listed by Lagos MiND at 11 Ogunsolu Street, Cement Bus-Stop, Ikeja.
+- Oregun PHC is listed by Lagos MiND at 32/34 Kudirat Abiola Way, Oregun, Lagos.
+- Ojodu PHC is listed by Lagos MiND and the Lagos State Ministry of Health PHC directory at 31 Gbadamosi Street, Ojodu.
+- The three names and addresses are directory-level identity evidence only. They do not establish current operation, opening hours, mental-health staffing, appointment requirements, cost or referral acceptance.
+- Take care not to conflate Oregun PHC with Olusosun PHC; they are separately named facilities in public listings.
+
+**Immediate facility verification request**
+Send a written request to the district at the published email addresses, asking it to confirm the current facility name, address, facility manager/official contact, opening days/hours, operational status, MeHPriC participation, mental-health services actually delivered, trained staff availability, age eligibility, fees, walk-in/appointment process, referral hospital and escalation/fallback arrangements for each of the three PHCs. Ask for a dated official roster or written confirmation and the appropriate district officer responsible for mental-health integration.
+
+**Do not classify any of the three facilities as verified-active until the district or facility management directly confirms the service details and the confirmation date and representative are logged.**
