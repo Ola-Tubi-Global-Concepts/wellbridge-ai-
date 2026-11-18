@@ -207,3 +207,36 @@ Request a dated, current written response from Lagos MiND and Lagos State Health
 6. A named institutional role/contact for periodic verification and a date-stamped source document or confirmation.
 
 **Do not publish a PHC-to-hospital referral link in WellBridge AI until the assignment and receiving hospital's acceptance process are confirmed directly.** Do not imply that a general hospital is an emergency mental-health service merely because it is a listed referral hub.
+
+
+### Independent evidence and administrative-boundary reconciliation — 18 November 2026
+
+**Recent peer-reviewed implementation evidence**
+- A 2026 mixed-methods study of government-led scale-up in Lagos reports that MeHPriC Transition-to-Scale embedded care for five priority mental, neurological and substance-use disorders in 57 PHCs and five general hospitals. It describes frontline delivery by non-specialist cadres, including community health extension workers and nurses, under structured supervision by district psychiatrists, supported by WhatsApp consultation networks: https://pmc.ncbi.nlm.nih.gov/articles/PMC13187677/
+- This study supports the description of the programme's implementation model at system level. It does not prove that a named facility currently has staff on duty, is accepting patients, or has a functioning referral route on the date a user needs care.
+- **Status:** independent published implementation evidence; current facility-level operating status and referral assignments remain direct-confirmation-pending.
+
+**Administrative-boundary discrepancy requiring resolution**
+- The Lagos State Ministry of Health PHC directory says PHC District 6 comprises Agege, Alimosho and Ifako/Ijaiye for District 1; Ikorodu, Kosofe and Shomolu for District 2; Epe, Eti-Osa, Ibeju-Lekki and Lagos Island for District 3; Apapa, Surulere and Lagos Mainland for District 4; Badagry, Ojo and Amuwo-Odofin for District 5; and Oshodi-Isolo, Mushin and Ikeja for District 6. Its District 6 PHC list includes Onilekere, Oregun and Ojodu PHCs: https://lagosministryofhealth.org/primary-health-facilities/
+- The current Lagos State Health District VI website describes its coverage as Mushin, Oshodi, Ikeja, Isolo, Ejigbo, Odi-Olowo, Onigbongbo and Ojodu: https://lshdvi.org/about
+- These sources use potentially different administrative descriptions and are not fully aligned. The District VI website is a health administrative district page, while the Ministry PHC directory describes the six PHC Board districts. Do not assume the names or boundaries are interchangeable.
+- **Action:** ask LSPHCB/Ministry to confirm the current PHC Board district and supervisory authority for each of the three facilities, and ask Health District VI to confirm its operational supervisory role for each. Record both roles separately if they differ.
+- **Status:** administrative responsibility requires written clarification; no inferred boundary resolution.
+
+**MeHPriC current public programme claims**
+- Lagos MiND's current MeHPriC page states services are available in 57 flagship PHCs and describes individual care, screening and group therapy at PHCs, tele-mental-health and a crisis intervention helpline: https://www.lagosmind.org/mehpric
+- Lagos MiND's facilities page says PHCs were grouped into clusters and assigned to specific State General Hospitals as referral and transition-of-care points. It names five hospitals but does not publish a readily accessible facility-to-hospital assignment matrix: https://www.lagosmind.org/facilities/
+- Do not assign a hospital to Onilekere, Oregun or Ojodu based on proximity or general LGA geography. Obtain the current cluster matrix from Lagos MiND/LSPHCB and confirm receiving-hospital acceptance directly.
+
+**Hospital service confirmation**
+- Federal Neuro-Psychiatric Hospital Yaba's official patient information page says the Yaba main centre caters for adults and older adults, while its Oshodi annex attends to children, adolescents and adults requiring intensive rehabilitation. It says first-time patients may enter through the emergency or amenity departments; the emergency unit is published as open 24 hours daily, while amenity hours are 8am–4pm Monday–Friday: https://fnphyaba.gov.ng/health-information/
+- Its official contact page publishes +234 815 517 0000, +234 906 000 1907 and enquiries@fnphyaba.gov.ng: https://fnphyaba.gov.ng/contact-us/
+- The user reports that a verification email has been sent to the hospital; response pending. Publicly published hours and entry details remain provider claims and have not been directly confirmed to WellBridge AI.
+- Do not use the hospital as a default PHC referral destination unless the responsible health authority confirms the referral route and the hospital confirms acceptance and service scope.
+
+**Next action sequence**
+1. Await written replies from Lagos State Ministry of Health/LSPHCB, Health District VI, Lagos MiND and Federal Neuro-Psychiatric Hospital Yaba. Record the date, sender role and exact scope of each response.
+2. Reconcile PHC Board district allocation versus Health District VI supervisory coverage for each candidate PHC.
+3. Obtain the current 57-PHC list and PHC-to-general-hospital cluster assignment matrix.
+4. Confirm each receiving hospital's mental-health service scope, intake route, hours, costs, eligibility, urgent-care process and named institutional liaison.
+5. Only after direct confirmation, create a verified pathway record with review/expiry date and fallback route. Until then, keep all candidate links unpublished and disabled.
