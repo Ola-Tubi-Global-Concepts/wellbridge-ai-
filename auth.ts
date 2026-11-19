@@ -3,16 +3,14 @@ import MicrosoftEntraID from "next-auth/providers/microsoft-entra-id";
 
 const tenantId = process.env.AUTH_MICROSOFT_ENTRA_ID_TENANT_ID;
 
-if (!tenantId) {
-  throw new Error("AUTH_MICROSOFT_ENTRA_ID_TENANT_ID is required.");
-}
-
 export const { handlers, auth, signIn, signOut } = NextAuth({
   providers: [
     MicrosoftEntraID({
       clientId: process.env.AUTH_MICROSOFT_ENTRA_ID_ID,
       clientSecret: process.env.AUTH_MICROSOFT_ENTRA_ID_SECRET,
-      issuer: `https://login.microsoftonline.com/${tenantId}/v2.0`,
+      issuer: tenantId
+        ? `https://login.microsoftonline.com/${tenantId}/v2.0`
+        : undefined,
     }),
   ],
   session: { strategy: "jwt" },
@@ -24,9 +22,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           roles?: string[];
         };
 
-        // Reject identities issued by a different Entra directory.
-        if (entraProfile.tid !== tenantId) {
-          throw new Error("Sign-in rejected: Microsoft Entra tenant mismatch.");
+        // Fail closed if the workforce tenant is not configured or does not match.
+        if (!tenantId || entraProfile.tid !== tenantId) {
+          throw new Error("Sign-in rejected: Microsoft Entra tenant mismatch or missing tenant configuration.");
         }
 
         token.tenantId = entraProfile.tid;
@@ -43,6 +41,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   pages: {
-    signIn: "/admin/sign-in",
+    signIn: "/admin-sign-in",
   },
 });
