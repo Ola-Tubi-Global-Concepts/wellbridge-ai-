@@ -134,7 +134,7 @@ BEGIN
   WHERE id = NEW.review_id;
   RETURN NEW;
 END;
-$;
+$$;
 
 CREATE TRIGGER trg_apply_verification_decision
 AFTER INSERT ON verification_decisions
