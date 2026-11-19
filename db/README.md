@@ -6,9 +6,10 @@
 
 1. `migrations/001_healthcare_pathway_verification.sql` — core register tables.
 2. `migrations/002_contact_channels_and_area_authorities.sql` — multiple service contact channels and separate administrative oversight records.
-3. `seeds/001_nigeria_lagos_candidates.sql` — cautious Nigeria/Lagos desk-research candidates.
-4. `seeds/002_candidate_evidence_links.sql` — attaches public-source review events to the candidate organisations, facilities and services.
-5. `seeds/003_additional_official_sources.sql` — adds Lagos State agency-directory and emergency-contact evidence.
+3. `migrations/003_admin_verification_security.sql` — private administrator identities, role assignments, verification workflow, evidence metadata, decisions, audit triggers and default-deny RLS (validation only; no app grants or policies).
+4. `seeds/001_nigeria_lagos_candidates.sql` — cautious Nigeria/Lagos desk-research candidates.
+5. `seeds/002_candidate_evidence_links.sql` — attaches public-source review events to the candidate organisations, facilities and services.
+6. `seeds/003_additional_official_sources.sql` — adds Lagos State agency-directory and emergency-contact evidence.
 
 Apply only to a disposable PostgreSQL development database after reviewing the SQL. Do not run against production.
 
@@ -70,3 +71,7 @@ The last two counts should be zero in this initial seed. That is intentional: th
 - No referral relationship is inferred from geographic proximity.
 - No API, user-facing directory, AI decision-making or crisis escalation is connected to these tables.
 - Do not provision a paid database or connect the app until budget, privacy, security, identity/access, backup, retention, clinical governance and operational ownership are approved.
+
+## Administrative verification interface — validation only
+
+Migration 003 is designed for the disposable `wellbridge-pathway-validation` Neon database only. Apply it after migrations 001 and 002. It does not configure Entra, create application grants/RLS policies, or connect the database to Azure. The companion design is `docs/admin-verification-interface-security-design.md`. The new RLS-enabled tables intentionally have no application policies; non-owner roles remain denied until a separately reviewed access-policy migration is implemented. Never use the Neon owner connection string in application code.
