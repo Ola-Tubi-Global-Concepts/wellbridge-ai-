@@ -5,7 +5,7 @@ export default async function AdminLayout({ children }: Readonly<{ children: Rea
   const session = await auth();
 
   if (!session?.user) {
-    redirect("/admin/sign-in");
+    redirect("/admin-sign-in");
   }
 
   if (!session.user.roles.includes("platform_owner")) {
