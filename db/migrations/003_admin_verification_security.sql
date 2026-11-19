@@ -120,6 +120,26 @@ CREATE TABLE verification_decisions (
 CREATE INDEX idx_verification_decisions_review
   ON verification_decisions(review_id, decided_at DESC);
 
+-- Persist the workflow state from the decision record itself.
+CREATE OR REPLACE FUNCTION apply_verification_decision_to_review()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public, pg_temp
+AS $
+BEGIN
+  UPDATE verification_reviews
+  SET review_status = NEW.decision,
+      closed_at = CASE WHEN NEW.decision IN ('approved','rejected') THEN now() ELSE NULL END,
+      updated_at = now()
+  WHERE id = NEW.review_id;
+  RETURN NEW;
+END;
+$;
+
+CREATE TRIGGER trg_apply_verification_decision
+AFTER INSERT ON verification_decisions
+FOR EACH ROW EXECUTE FUNCTION apply_verification_decision_to_review();
+
 CREATE TABLE audit_log (
   id bigint GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
   occurred_at timestamptz NOT NULL DEFAULT now(),
@@ -210,6 +230,14 @@ BEGIN
       WHERE e.review_id = NEW.id
     ) THEN
       RAISE EXCEPTION 'A review must have at least one linked evidence source before submission';
+    END IF;
+    IF EXISTS (
+      SELECT 1 FROM evidence_attachments a
+      WHERE a.review_id = NEW.id
+        AND a.deleted_at IS NULL
+        AND a.malware_scan_status <> 'clean'
+    ) THEN
+      RAISE EXCEPTION 'All attached evidence files must pass malware scanning before submission';
     END IF;
     IF NEW.submitted_at IS NULL THEN
       NEW.submitted_at := now();
