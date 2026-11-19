@@ -125,7 +125,7 @@ CREATE OR REPLACE FUNCTION apply_verification_decision_to_review()
 RETURNS trigger
 LANGUAGE plpgsql
 SET search_path = public, pg_temp
-AS $
+AS $$
 BEGIN
   UPDATE verification_reviews
   SET review_status = NEW.decision,
