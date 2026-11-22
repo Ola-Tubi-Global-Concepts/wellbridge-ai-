@@ -53,6 +53,9 @@ jobs:
       - name: Build application
         run: npm run build
 
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
       - name: Create restricted test application role
         run: |
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE ROLE wellbridge_app NOLOGIN NOSUPERUSER NOBYPASSRLS;"
