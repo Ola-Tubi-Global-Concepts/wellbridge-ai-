@@ -361,7 +361,7 @@ CREATE OR REPLACE FUNCTION guard_review_workflow_transition()
 RETURNS trigger
 LANGUAGE plpgsql
 SET search_path = pg_catalog, public, pg_temp
-AS $
+AS $workflow_guard$
 BEGIN
   IF NEW.review_status IS NOT DISTINCT FROM OLD.review_status THEN
     RETURN NEW;
@@ -382,7 +382,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$workflow_guard$;
 CREATE TRIGGER trg_guard_review_workflow_transition
 BEFORE UPDATE OF review_status ON verification_reviews
 FOR EACH ROW EXECUTE FUNCTION guard_review_workflow_transition();
@@ -393,7 +393,7 @@ CREATE OR REPLACE FUNCTION guard_review_decision_state()
 RETURNS trigger
 LANGUAGE plpgsql
 SET search_path = pg_catalog, public, pg_temp
-AS $
+AS $decision_guard$
 BEGIN
   IF NEW.review_status IN ('approved','rejected','changes_requested')
      AND OLD.review_status IS DISTINCT FROM NEW.review_status
@@ -405,7 +405,7 @@ BEGIN
   END IF;
   RETURN NEW;
 END;
-$;
+$decision_guard$;
 CREATE TRIGGER trg_guard_review_decision_state
 BEFORE UPDATE OF review_status ON verification_reviews
 FOR EACH ROW EXECUTE FUNCTION guard_review_decision_state();
