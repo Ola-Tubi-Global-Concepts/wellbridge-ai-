@@ -75,14 +75,12 @@ BEGIN
     v_review, 'organisation', v_org, 'Synthetic claim for security regression testing',
     'queued', NULL, v_admin
   );
-  PERFORM pg_temp.test_set_actor(v_verifier);
-  INSERT INTO verification_review_evidence(review_id, evidence_id, relevance_note, linked_by_admin_id)
-  VALUES (v_review, v_evidence, 'Synthetic fixture evidence', v_verifier);
-  PERFORM pg_temp.test_set_actor(v_admin);
   UPDATE verification_reviews
   SET assigned_to_admin_id = v_verifier, review_status = 'assigned'
   WHERE id = v_review;
-  PERFORM set_config('app.actor_admin_id', v_verifier::text, true);
+  PERFORM pg_temp.test_set_actor(v_verifier);
+  INSERT INTO verification_review_evidence(review_id, evidence_id, relevance_note, linked_by_admin_id)
+  VALUES (v_review, v_evidence, 'Synthetic fixture evidence', v_verifier);
   UPDATE verification_reviews SET review_status = 'in_progress' WHERE id = v_review;
   UPDATE verification_reviews SET review_status = 'submitted' WHERE id = v_review;
 
