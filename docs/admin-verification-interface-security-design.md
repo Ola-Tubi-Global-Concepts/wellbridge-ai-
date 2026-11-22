@@ -40,9 +40,9 @@ Adds administrator identity and role mapping, verification work, evidence metada
 
 ## 4. Audit identity context
 
-The audit trigger reads transaction-local settings `app.actor_admin_id`, `app.actor_source` and `app.request_id`. The trusted server must set these only after validating the Entra token and resolving the active administrator. It must set them transaction-locally and clear them automatically at transaction end.
+Migration 005 replaces trust in a bare `app.actor_admin_id` setting with a signed HMAC actor assertion. The trusted server resolves the exact Entra issuer + immutable subject pair, signs `key_id|admin_uuid|issued_at_epoch_seconds|nonce_uuid`, and calls `wellbridge_set_actor_context` inside one transaction. PostgreSQL verifies the signature against a key stored in the private `wellbridge_private` schema and binds the nonce to the current transaction. Role helpers, review/evidence RLS and audit attribution re-verify the assertion. An unsigned or modified GUC is not an authenticated actor.
 
-The actor fields are application-asserted context, not cryptographic proof. Do not expose arbitrary SQL execution or database credentials to users. For production-grade non-repudiation, forward security logs to a separately controlled log platform and retain identity-provider sign-in logs under an approved retention policy.
+The key must be provisioned out-of-band by an authorised DBA and held in server-side secret storage. Never expose the key or database credentials to the browser. The transaction adapter is documented in `docs/migration-005-signed-actor-context.md`. This design reduces GUC spoofing risk but does not protect against compromise of the trusted server, signing key, migration owner or database superuser. Forward security logs to a separately controlled log platform and retain identity-provider sign-in logs under an approved retention policy.
 
 ## 5. Evidence file handling
 
@@ -70,9 +70,9 @@ The SQL migration does not configure Entra or the web application. Before enabli
 9. Keep Entra secrets and database credentials in managed server-side secret storage.
 10. Do not expose administrative endpoints to unauthenticated users or the public application.
 
-## 7. Next database stage — do not combine with migration 003
+## 7. Database access-policy and signed-context stages
 
-Before application use, design a separate migration for explicit grants to a dedicated non-owner application database role, RLS policies, narrowly scoped server-side workflow functions, role-grant/revocation controls and platform-owner bootstrap. Test verifier, approver, auditor and owner isolation. Do not solve RLS by granting broad access or using the Neon owner connection string in the application.
+Migrations 004 and 005 implement the validation-stage grants, RLS, role governance, signed actor assertions and assignment-aware review/evidence access. Their CI coverage is not production certification. Provision a separate least-privilege login role as a member of the NOLOGIN `wellbridge_app` group; keep the migration owner separate. Every protected data route/action must use the transaction adapter and current database roles. Do not use the Neon owner connection string in application code.
 
 ## 8. Validation checklist
 
