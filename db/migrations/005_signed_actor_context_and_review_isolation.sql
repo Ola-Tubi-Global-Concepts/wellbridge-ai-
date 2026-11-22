@@ -36,6 +36,28 @@ CREATE INDEX IF NOT EXISTS idx_actor_assertion_nonces_seen
 REVOKE ALL ON ALL TABLES IN SCHEMA wellbridge_private FROM PUBLIC, wellbridge_app;
 REVOKE ALL ON ALL SEQUENCES IN SCHEMA wellbridge_private FROM PUBLIC, wellbridge_app;
 
+
+-- Resolve only the immutable Entra issuer/subject pair. No email or other PII
+-- is returned; application role membership is checked after signed context exists.
+CREATE OR REPLACE FUNCTION wellbridge_resolve_admin_identity(
+  p_identity_issuer text,
+  p_identity_subject text
+)
+RETURNS uuid
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $resolve_identity$
+  SELECT id FROM public.admin_identities
+  WHERE identity_issuer = p_identity_issuer
+    AND identity_subject = p_identity_subject
+    AND account_status = 'active'
+  LIMIT 1;
+$resolve_identity$;
+REVOKE ALL ON FUNCTION wellbridge_resolve_admin_identity(text,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION wellbridge_resolve_admin_identity(text,text) TO wellbridge_app;
+
 -- Verify the exact canonical payload:
 -- key_id|actor_uuid|issued_at_epoch_seconds|nonce_uuid
 -- The nonce is accepted repeatedly only inside the same PostgreSQL transaction.
@@ -324,11 +346,11 @@ DO $role_hardening$
 DECLARE v_role record;
 BEGIN
   SELECT r.rolsuper, r.rolbypassrls, r.rolcreatedb, r.rolcreaterole,
-         r.rolreplication, r.rolinherit
+         r.rolreplication, r.rolinherit, r.rolcanlogin
   INTO v_role FROM pg_catalog.pg_roles r WHERE r.rolname = 'wellbridge_app';
   IF NOT FOUND THEN RAISE EXCEPTION 'wellbridge_app role is missing'; END IF;
   IF v_role.rolsuper OR v_role.rolbypassrls OR v_role.rolcreatedb
-     OR v_role.rolcreaterole OR v_role.rolreplication THEN
+     OR v_role.rolcreaterole OR v_role.rolreplication OR v_role.rolcanlogin THEN
     RAISE EXCEPTION 'wellbridge_app has prohibited elevated role attributes';
   END IF;
   IF EXISTS (
