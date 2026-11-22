@@ -72,8 +72,13 @@ BEGIN
   IF n <> 1 THEN RAISE EXCEPTION 'Verifier should see only its own role assignment; saw %', n; END IF;
   SELECT count(*) INTO n FROM audit_log;
   IF n <> 0 THEN RAISE EXCEPTION 'Verifier must not read audit log'; END IF;
-  UPDATE verification_reviews SET review_status = 'approved'
-    WHERE id = current_setting('test.review_id')::uuid;
+  BEGIN
+    UPDATE verification_reviews SET review_status = 'approved'
+      WHERE id = current_setting('test.review_id')::uuid;
+    RAISE EXCEPTION 'Verifier unexpectedly changed a review to approved';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM = 'Verifier unexpectedly changed a review to approved' THEN RAISE; END IF;
+  END;
   SELECT count(*) INTO n FROM verification_reviews
     WHERE id = current_setting('test.review_id')::uuid AND review_status = 'submitted';
   IF n <> 1 THEN RAISE EXCEPTION 'Verifier changed a review to approved without a decision'; END IF;
