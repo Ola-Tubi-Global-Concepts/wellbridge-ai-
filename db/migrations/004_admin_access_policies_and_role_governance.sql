@@ -203,7 +203,8 @@ BEGIN
     'administrative_area_authorities','evidence_sources','verification_events'
   ] LOOP
     EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
-    EXECUTE format('ALTER TABLE public.%I FORCE ROW LEVEL SECURITY', t);
+    -- Table owners retain controlled migration/trigger administration; the non-owner
+    -- wellbridge_app role remains subject to RLS.
   END LOOP;
 END;
 $$;
@@ -336,6 +337,30 @@ CREATE POLICY verification_events_write_verifier_or_admin ON verification_events
   FOR INSERT TO wellbridge_app
   WITH CHECK (wellbridge_has_any_role('platform_owner','pathway_administrator','pathway_verifier'));
 
+
+-- A client cannot set a review to an approval outcome directly. Such a state
+-- must be backed by the independently validated decision row inserted first.
+CREATE OR REPLACE FUNCTION guard_review_decision_state()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog, public, pg_temp
+AS $
+BEGIN
+  IF NEW.review_status IN ('approved','rejected','changes_requested')
+     AND OLD.review_status IS DISTINCT FROM NEW.review_status
+     AND NOT EXISTS (
+       SELECT 1 FROM public.verification_decisions d
+       WHERE d.review_id = NEW.id AND d.decision = NEW.review_status
+     ) THEN
+    RAISE EXCEPTION 'Review decision states must be created through verification_decisions';
+  END IF;
+  RETURN NEW;
+END;
+$;
+CREATE TRIGGER trg_guard_review_decision_state
+BEFORE UPDATE OF review_status ON verification_reviews
+FOR EACH ROW EXECUTE FUNCTION guard_review_decision_state();
+
 -- No direct role-table writes, audit writes, or deletes from the application role.
 REVOKE ALL ON admin_identities, admin_role_assignments, verification_reviews,
   verification_review_evidence, evidence_attachments, verification_decisions,
@@ -358,7 +383,6 @@ GRANT UPDATE ON verification_reviews, evidence_attachments,
   organisations, facilities, services, facility_services, service_contact_channels,
   referral_relationships, professional_credentials, administrative_area_authorities
 TO wellbridge_app;
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO wellbridge_app;
 
 REVOKE ALL ON FUNCTION wellbridge_current_admin_id() FROM PUBLIC;
 REVOKE ALL ON FUNCTION wellbridge_has_role(text) FROM PUBLIC;
