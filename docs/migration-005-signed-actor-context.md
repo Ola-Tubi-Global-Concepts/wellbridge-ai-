@@ -60,11 +60,16 @@ The database login role must be a separate least-privilege login that is granted
 The disposable PostgreSQL CI suite applies migrations 001–005 and exercises the existing role-governance tests plus:
 - unsigned actor-GUC spoofing rejection;
 - expired signed assertion rejection;
+- replay of a nonce bound to another transaction is rejected;
 - verifier visibility limited to assigned reviews;
+- assignment changes reject suspended identities and accounts without an active verifier role;
+- the final active platform-owner role cannot be revoked;
 - approval by a distinct approver;
 - role grant/revocation restrictions and audit immutability.
 
 Nonce records are intentionally retained beyond the 60-second assertion window to prevent replay. A DBA maintenance task may purge records older than an approved retention interval (at least 24 hours). Do not grant nonce-table DELETE to the application role.
+
+The latest feature-branch CI run also validates the non-login application-role ownership checks, including protected schema, table and function ownership.
 
 ## Remaining production gates
 
