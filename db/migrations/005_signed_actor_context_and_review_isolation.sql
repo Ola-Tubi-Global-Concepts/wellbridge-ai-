@@ -213,6 +213,107 @@ REVOKE ALL ON FUNCTION wellbridge_has_any_role(text[]) FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION wellbridge_has_role(text) TO wellbridge_app;
 GRANT EXECUTE ON FUNCTION wellbridge_has_any_role(text[]) TO wellbridge_app;
 
+
+-- Strengthen role governance: never grant roles to inactive identities and
+-- prevent concurrent removal of the final active platform owner.
+CREATE OR REPLACE FUNCTION wellbridge_grant_admin_role(
+  p_admin_identity_id uuid,
+  p_role_name text,
+  p_grant_reason text,
+  p_expires_at timestamptz DEFAULT NULL
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $grant_hardened$
+DECLARE v_actor uuid; v_assignment_id uuid; v_target_status text;
+BEGIN
+  v_actor := public.wellbridge_current_admin_id();
+  IF v_actor IS NULL OR NOT public.wellbridge_has_role('platform_owner') THEN
+    RAISE EXCEPTION 'Only an active platform owner may grant administrator roles';
+  END IF;
+  IF p_role_name NOT IN ('platform_owner','pathway_administrator','pathway_verifier','pathway_approver','audit_reviewer')
+     OR nullif(btrim(p_grant_reason), '') IS NULL
+     OR (p_expires_at IS NOT NULL AND p_expires_at <= statement_timestamp()) THEN
+    RAISE EXCEPTION 'Invalid role, grant reason or expiry';
+  END IF;
+  IF p_role_name = 'platform_owner' THEN
+    PERFORM pg_advisory_xact_lock(hashtext('wellbridge:platform_owner_governance'));
+  END IF;
+  SELECT account_status INTO v_target_status
+  FROM public.admin_identities WHERE id = p_admin_identity_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Target administrator identity does not exist'; END IF;
+  IF v_target_status <> 'active' THEN
+    RAISE EXCEPTION 'Roles cannot be granted to an inactive administrator identity';
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM public.admin_role_assignments
+    WHERE admin_identity_id = p_admin_identity_id AND role_name = p_role_name
+      AND revoked_at IS NULL
+      AND (expires_at IS NULL OR expires_at > statement_timestamp())
+  ) THEN
+    RAISE EXCEPTION 'An active assignment for this role already exists';
+  END IF;
+  INSERT INTO public.admin_role_assignments
+    (admin_identity_id, role_name, granted_by_admin_id, expires_at, grant_reason)
+  VALUES (p_admin_identity_id, p_role_name, v_actor, p_expires_at, btrim(p_grant_reason))
+  RETURNING id INTO v_assignment_id;
+  RETURN v_assignment_id;
+END;
+$grant_hardened$;
+
+CREATE OR REPLACE FUNCTION wellbridge_revoke_admin_role(
+  p_assignment_id uuid,
+  p_reason text
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $revoke_hardened$
+DECLARE
+  v_actor uuid;
+  v_target uuid;
+  v_role text;
+  v_active_owners bigint;
+BEGIN
+  v_actor := public.wellbridge_current_admin_id();
+  IF v_actor IS NULL OR NOT public.wellbridge_has_role('platform_owner') THEN
+    RAISE EXCEPTION 'Only an active platform owner may revoke administrator roles';
+  END IF;
+  IF nullif(btrim(p_reason), '') IS NULL THEN
+    RAISE EXCEPTION 'A revocation reason is required';
+  END IF;
+
+  SELECT admin_identity_id, role_name INTO v_target, v_role
+  FROM public.admin_role_assignments
+  WHERE id = p_assignment_id AND revoked_at IS NULL
+  FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Active role assignment not found'; END IF;
+
+  IF v_role = 'platform_owner' THEN
+    PERFORM pg_advisory_xact_lock(hashtext('wellbridge:platform_owner_governance'));
+    SELECT count(*) INTO v_active_owners
+    FROM public.admin_role_assignments r
+    JOIN public.admin_identities a ON a.id = r.admin_identity_id
+    WHERE r.role_name = 'platform_owner'
+      AND r.revoked_at IS NULL
+      AND (r.expires_at IS NULL OR r.expires_at > statement_timestamp())
+      AND a.account_status = 'active'
+      AND r.admin_identity_id <> v_target;
+    IF v_active_owners = 0 THEN
+      RAISE EXCEPTION 'Cannot revoke the final active platform owner';
+    END IF;
+  END IF;
+
+  UPDATE public.admin_role_assignments
+  SET revoked_by_admin_id = v_actor, revoked_at = statement_timestamp(),
+      grant_reason = grant_reason || E'\\nRevocation: ' || btrim(p_reason)
+  WHERE id = p_assignment_id AND revoked_at IS NULL;
+END;
+$revoke_hardened$;
+
 -- Review visibility: verifier sees assigned work only; pathway administrators,
 -- approvers, auditors and platform owners retain their distinct operational scopes.
 CREATE OR REPLACE FUNCTION wellbridge_can_read_review(p_review_id uuid)
