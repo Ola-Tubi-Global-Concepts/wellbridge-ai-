@@ -198,7 +198,7 @@ SET LOCAL ROLE wellbridge_app;
 SELECT pg_temp.test_set_actor(current_setting('test.approver_id')::uuid);
 INSERT INTO verification_decisions(review_id, decision, rationale, decided_by_admin_id)
 VALUES (current_setting('test.review_id')::uuid, 'approved', 'Synthetic independent approval test', current_setting('test.approver_id')::uuid);
-DO $
+DO $approver_test$
 DECLARE n integer;
 BEGIN
   SELECT count(*) INTO n FROM verification_reviews;
@@ -211,7 +211,7 @@ BEGIN
   SELECT count(*) INTO n FROM audit_log;
   IF n <> 0 THEN RAISE EXCEPTION 'Approver must not read audit log'; END IF;
 END;
-$$;
+$approver_test$;
 RESET ROLE;
 
 -- Auditor: read-only audit access; cannot mutate the log.
@@ -268,7 +268,7 @@ SELECT set_config(
   true
 );
 SELECT wellbridge_revoke_admin_role(current_setting('test.assignment_id')::uuid, 'security regression revoke');
-DO $
+DO $owner_test$
 DECLARE n integer;
 BEGIN
   IF public.wellbridge_resolve_admin_identity(
@@ -302,7 +302,7 @@ BEGIN
     AND revoked_at IS NOT NULL AND revoked_by_admin_id = current_setting('test.owner_id')::uuid;
   IF n <> 1 THEN RAISE EXCEPTION 'Platform owner role revocation was not recorded'; END IF;
 END;
-$;
+$owner_test$;
 RESET ROLE;
 
 ROLLBACK;
