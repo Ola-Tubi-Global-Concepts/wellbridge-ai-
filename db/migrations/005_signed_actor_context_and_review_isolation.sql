@@ -154,7 +154,8 @@ GRANT EXECUTE ON FUNCTION wellbridge_set_actor_context(uuid,text,bigint,text,tex
 
 CREATE OR REPLACE FUNCTION wellbridge_current_admin_id()
 RETURNS uuid
-LANGUAGE plpgsql\nVOLATILE
+LANGUAGE plpgsql
+VOLATILE
 SECURITY DEFINER
 SET search_path = pg_catalog, public, wellbridge_private, pg_temp
 AS $current_admin$
@@ -176,7 +177,8 @@ GRANT EXECUTE ON FUNCTION wellbridge_current_admin_id() TO wellbridge_app;
 -- Rebuild role helpers so every role decision requires a valid signed assertion.
 CREATE OR REPLACE FUNCTION wellbridge_has_role(p_role text)
 RETURNS boolean
-LANGUAGE sql\nVOLATILE
+LANGUAGE sql
+VOLATILE
 SECURITY DEFINER
 SET search_path = pg_catalog, public, wellbridge_private, pg_temp
 AS $has_role$
@@ -192,7 +194,8 @@ $has_role$;
 
 CREATE OR REPLACE FUNCTION wellbridge_has_any_role(VARIADIC p_roles text[])
 RETURNS boolean
-LANGUAGE sql\nVOLATILE
+LANGUAGE sql
+VOLATILE
 SECURITY DEFINER
 SET search_path = pg_catalog, public, wellbridge_private, pg_temp
 AS $has_any_role$
@@ -214,7 +217,8 @@ GRANT EXECUTE ON FUNCTION wellbridge_has_any_role(text[]) TO wellbridge_app;
 -- approvers, auditors and platform owners retain their distinct operational scopes.
 CREATE OR REPLACE FUNCTION wellbridge_can_read_review(p_review_id uuid)
 RETURNS boolean
-LANGUAGE plpgsql\nVOLATILE
+LANGUAGE plpgsql
+VOLATILE
 SECURITY DEFINER
 SET search_path = pg_catalog, public, wellbridge_private, pg_temp
 AS $review_access$
