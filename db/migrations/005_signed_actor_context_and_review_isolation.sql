@@ -309,7 +309,7 @@ BEGIN
 
   UPDATE public.admin_role_assignments
   SET revoked_by_admin_id = v_actor, revoked_at = statement_timestamp(),
-      grant_reason = grant_reason || E'\\nRevocation: ' || btrim(p_reason)
+      grant_reason = grant_reason || E'\nRevocation: ' || btrim(p_reason)
   WHERE id = p_assignment_id AND revoked_at IS NULL;
 END;
 $revoke_hardened$;
