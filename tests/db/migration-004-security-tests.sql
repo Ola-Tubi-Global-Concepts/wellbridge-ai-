@@ -1,5 +1,5 @@
 -- Migration 004 security regression tests.
--- Run only against a disposable PostgreSQL database after migrations 001-004.
+-- Run only against a disposable PostgreSQL database after migrations 001-005.
 -- The script creates fixtures and rolls the entire test transaction back.
 BEGIN;
 
