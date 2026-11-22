@@ -182,6 +182,7 @@ $decision_update$;
 CREATE OR REPLACE FUNCTION enforce_verification_decision_rules()
 RETURNS trigger
 LANGUAGE plpgsql
+SECURITY DEFINER
 SET search_path = pg_catalog, public, pg_temp
 AS $$
 DECLARE v_assignee uuid; v_review_status text; v_actor uuid;
