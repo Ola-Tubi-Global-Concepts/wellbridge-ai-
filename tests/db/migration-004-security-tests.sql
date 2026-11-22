@@ -30,8 +30,33 @@ BEGIN
 END;
 $test_sign$;
 
-DO $
+CREATE FUNCTION pg_temp.test_set_expired_actor(p_actor uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, wellbridge_private, pg_temp
+AS $test_expired$
 DECLARE
+  v_epoch bigint := extract(epoch FROM clock_timestamp())::bigint - 600;
+  v_nonce text := gen_random_uuid()::text;
+  v_secret bytea;
+  v_payload text;
+  v_signature text;
+BEGIN
+  SELECT secret INTO STRICT v_secret
+  FROM wellbridge_private.actor_assertion_keys
+  WHERE key_id = 'ci-test' AND active;
+  v_payload := 'ci-test|' || p_actor::text || '|' || v_epoch::text || '|' || v_nonce;
+  v_signature := encode(public.hmac(convert_to(v_payload, 'UTF8'), v_secret, 'sha256'), 'hex');
+  PERFORM set_config('app.actor_admin_id', p_actor::text, true);
+  PERFORM set_config('app.actor_key_id', 'ci-test', true);
+  PERFORM set_config('app.actor_issued_at', v_epoch::text, true);
+  PERFORM set_config('app.actor_nonce', v_nonce, true);
+  PERFORM set_config('app.actor_signature', v_signature, true);
+END;
+$test_expired$;
+
+DO $fixtures$DECLARE
   v_owner uuid := gen_random_uuid();
   v_verifier uuid := gen_random_uuid();
   v_approver uuid := gen_random_uuid();
@@ -107,7 +132,7 @@ BEGIN
   PERFORM set_config('test.review_id', v_review::text, true);
   PERFORM set_config('test.org_id', v_org::text, true);
 END;
-$$;
+$fixtures$;
 
 -- Verifier: own assignment visibility, no audit access, no approval powers.
 SET LOCAL ROLE wellbridge_app;
