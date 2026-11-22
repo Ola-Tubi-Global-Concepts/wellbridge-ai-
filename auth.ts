@@ -34,7 +34,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
     async session({ session, token }) {
       if (session.user) {
-        session.user.id = typeof token.sub === "string" ? token.sub : undefined;
+        if (typeof token.sub === "string") {
+          session.user.id = token.sub;
+        }
         session.user.roles = Array.isArray(token.roles) ? token.roles : [];
         session.user.tenantId = typeof token.tenantId === "string" ? token.tenantId : undefined;
       }
