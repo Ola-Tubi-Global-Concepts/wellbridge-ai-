@@ -56,6 +56,35 @@ BEGIN
 END;
 $test_expired$;
 
+CREATE FUNCTION pg_temp.test_set_replayed_actor(p_actor uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, wellbridge_private, pg_temp
+AS $test_replay$
+DECLARE
+  v_epoch bigint := extract(epoch FROM clock_timestamp())::bigint;
+  v_nonce text := gen_random_uuid()::text;
+  v_secret bytea;
+  v_payload text;
+  v_signature text;
+BEGIN
+  SELECT secret INTO STRICT v_secret
+  FROM wellbridge_private.actor_assertion_keys
+  WHERE key_id = 'ci-test' AND active;
+  v_payload := 'ci-test|' || p_actor::text || '|' || v_epoch::text || '|' || v_nonce;
+  v_signature := encode(public.hmac(convert_to(v_payload, 'UTF8'), v_secret, 'sha256'), 'hex');
+  INSERT INTO wellbridge_private.actor_assertion_nonces
+    (nonce, actor_admin_id, transaction_id, issued_at)
+  VALUES (v_nonce, p_actor, txid_current() - 1, to_timestamp(v_epoch));
+  PERFORM set_config('app.actor_admin_id', p_actor::text, true);
+  PERFORM set_config('app.actor_key_id', 'ci-test', true);
+  PERFORM set_config('app.actor_issued_at', v_epoch::text, true);
+  PERFORM set_config('app.actor_nonce', v_nonce, true);
+  PERFORM set_config('app.actor_signature', v_signature, true);
+END;
+$test_replay$;
+
 DO $fixtures$
 DECLARE
   v_owner uuid := gen_random_uuid();
@@ -154,6 +183,14 @@ BEGIN
   PERFORM set_config('app.actor_admin_id', current_setting('test.owner_id'), true);
   IF wellbridge_current_admin_id() IS NOT NULL THEN
     RAISE EXCEPTION 'Unsigned actor GUC unexpectedly authenticated as platform owner';
+  END IF;
+  PERFORM pg_temp.test_set_expired_actor(current_setting('test.verifier_id')::uuid);
+  IF wellbridge_current_admin_id() IS NOT NULL THEN
+    RAISE EXCEPTION 'Expired actor assertion unexpectedly authenticated';
+  END IF;
+  PERFORM pg_temp.test_set_replayed_actor(current_setting('test.verifier_id')::uuid);
+  IF wellbridge_current_admin_id() IS NOT NULL THEN
+    RAISE EXCEPTION 'A nonce bound to another transaction was replayed successfully';
   END IF;
   PERFORM pg_temp.test_set_actor(current_setting('test.verifier_id')::uuid);
   SELECT count(*) INTO n FROM admin_role_assignments;
