@@ -191,9 +191,13 @@ SET LOCAL ROLE wellbridge_app;
 SELECT pg_temp.test_set_actor(current_setting('test.approver_id')::uuid);
 INSERT INTO verification_decisions(review_id, decision, rationale, decided_by_admin_id)
 VALUES (current_setting('test.review_id')::uuid, 'approved', 'Synthetic independent approval test', current_setting('test.approver_id')::uuid);
-DO $$
+DO $
 DECLARE n integer;
 BEGIN
+  SELECT count(*) INTO n FROM verification_reviews;
+  IF n <> 1 THEN RAISE EXCEPTION 'Approver must see only submitted/decision-lifecycle reviews; saw %', n; END IF;
+  SELECT count(*) INTO n FROM verification_review_evidence;
+  IF n <> 1 THEN RAISE EXCEPTION 'Approver evidence visibility did not follow review visibility'; END IF;
   SELECT count(*) INTO n FROM verification_reviews
   WHERE id = current_setting('test.review_id')::uuid AND review_status = 'approved';
   IF n <> 1 THEN RAISE EXCEPTION 'Decision did not update review state'; END IF;
