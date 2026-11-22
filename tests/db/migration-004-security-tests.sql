@@ -56,7 +56,8 @@ BEGIN
 END;
 $test_expired$;
 
-DO $fixtures$DECLARE
+DO $fixtures$
+DECLARE
   v_owner uuid := gen_random_uuid();
   v_verifier uuid := gen_random_uuid();
   v_approver uuid := gen_random_uuid();
