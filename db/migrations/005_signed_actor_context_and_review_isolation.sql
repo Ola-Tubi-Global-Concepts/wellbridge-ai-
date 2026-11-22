@@ -503,6 +503,23 @@ BEGIN
     RAISE EXCEPTION 'wellbridge_app must not own protected tables or sequences';
   END IF;
   IF EXISTS (
+    SELECT 1 FROM pg_catalog.pg_namespace n
+    JOIN pg_catalog.pg_roles r ON r.oid = n.nspowner
+    WHERE r.rolname = 'wellbridge_app'
+      AND n.nspname IN ('public','wellbridge_private')
+  ) THEN
+    RAISE EXCEPTION 'wellbridge_app must not own protected schemas';
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM pg_catalog.pg_proc p
+    JOIN pg_catalog.pg_roles r ON r.oid = p.proowner
+    JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+    WHERE r.rolname = 'wellbridge_app'
+      AND n.nspname IN ('public','wellbridge_private')
+  ) THEN
+    RAISE EXCEPTION 'wellbridge_app must not own protected functions';
+  END IF;
+  IF EXISTS (
     SELECT 1 FROM pg_catalog.pg_auth_members m
     JOIN pg_catalog.pg_roles granted_role ON granted_role.oid = m.roleid
     JOIN pg_catalog.pg_roles member_role ON member_role.oid = m.member
