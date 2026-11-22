@@ -40,15 +40,19 @@ BEGIN
   INSERT INTO evidence_sources(id, source_title, source_url, source_type, evidence_summary)
   VALUES (v_evidence, 'Test evidence', 'https://example.invalid/evidence', 'other', 'Synthetic security test fixture');
 
+  PERFORM set_config('app.actor_admin_id', v_admin::text, true);
   INSERT INTO verification_reviews(
     id, entity_type, entity_id, claim_to_verify, review_status,
     assigned_to_admin_id, created_by_admin_id
   ) VALUES (
     v_review, 'organisation', v_org, 'Synthetic claim for security regression testing',
-    'submitted', v_verifier, v_admin
+    'queued', NULL, v_admin
   );
   INSERT INTO verification_review_evidence(review_id, evidence_id, relevance_note, linked_by_admin_id)
   VALUES (v_review, v_evidence, 'Synthetic fixture evidence', v_verifier);
+  UPDATE verification_reviews
+  SET assigned_to_admin_id = v_verifier, review_status = 'submitted'
+  WHERE id = v_review;
 
   PERFORM set_config('test.owner_id', v_owner::text, true);
   PERFORM set_config('test.verifier_id', v_verifier::text, true);
