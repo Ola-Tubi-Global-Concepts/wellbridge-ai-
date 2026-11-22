@@ -1,10 +1,12 @@
 import "next-auth";
-import type { DefaultSession } from "next-auth";
 
 declare module "next-auth" {
   interface Session {
-    user: Omit<DefaultSession["user"], "id"> & {
+    user: {
       id?: string;
+      name?: string | null;
+      email?: string | null;
+      image?: string | null;
       roles: string[];
       tenantId?: string;
     };
