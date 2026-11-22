@@ -42,6 +42,7 @@ DECLARE
   v_org uuid := gen_random_uuid();
   v_evidence uuid := gen_random_uuid();
   v_review uuid := gen_random_uuid();
+  v_other_review uuid := gen_random_uuid();
 BEGIN
   INSERT INTO admin_identities(id, identity_issuer, identity_subject, account_status)
   VALUES
@@ -84,6 +85,19 @@ BEGIN
   UPDATE verification_reviews SET review_status = 'in_progress' WHERE id = v_review;
   UPDATE verification_reviews SET review_status = 'submitted' WHERE id = v_review;
 
+  PERFORM pg_temp.test_set_actor(v_admin);
+  INSERT INTO verification_reviews(
+    id, entity_type, entity_id, claim_to_verify, review_status,
+    assigned_to_admin_id, created_by_admin_id
+  ) VALUES (
+    v_other_review, 'organisation', v_org, 'Second synthetic claim for isolation testing',
+    'queued', NULL, v_admin
+  );
+  UPDATE verification_reviews
+    SET assigned_to_admin_id = v_admin, review_status = 'assigned'
+    WHERE id = v_other_review;
+
+  PERFORM pg_temp.test_set_actor(v_verifier);
   PERFORM set_config('test.owner_id', v_owner::text, true);
   PERFORM set_config('test.verifier_id', v_verifier::text, true);
   PERFORM set_config('test.approver_id', v_approver::text, true);
@@ -102,6 +116,13 @@ DO $$
 DECLARE n integer;
 BEGIN
   IF NOT wellbridge_has_role('pathway_verifier') THEN RAISE EXCEPTION 'Verifier role was not resolved'; END IF;
+  SELECT count(*) INTO n FROM verification_reviews;
+  IF n <> 1 THEN RAISE EXCEPTION 'Verifier must see only their assigned review; saw %', n; END IF;
+  PERFORM set_config('app.actor_admin_id', current_setting('test.owner_id'), true);
+  IF wellbridge_current_admin_id() IS NOT NULL THEN
+    RAISE EXCEPTION 'Unsigned actor GUC unexpectedly authenticated as platform owner';
+  END IF;
+  PERFORM pg_temp.test_set_actor(current_setting('test.verifier_id')::uuid);
   SELECT count(*) INTO n FROM admin_role_assignments;
   IF n <> 1 THEN RAISE EXCEPTION 'Verifier should see only its own role assignment; saw %', n; END IF;
   SELECT count(*) INTO n FROM audit_log;
