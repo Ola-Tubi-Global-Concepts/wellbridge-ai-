@@ -3,7 +3,34 @@
 -- The script creates fixtures and rolls the entire test transaction back.
 BEGIN;
 
-DO $$
+-- Disposable CI-only signing key and SECURITY DEFINER test helper. This helper
+-- exists only in pg_temp and is rolled back; it must never enter application code.
+INSERT INTO wellbridge_private.actor_assertion_keys(key_id, secret, active)
+VALUES ('ci-test', decode(repeat('ab', 32), 'hex'), true);
+
+CREATE FUNCTION pg_temp.test_set_actor(p_actor uuid)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, wellbridge_private, pg_temp
+AS $test_sign$
+DECLARE
+  v_epoch bigint := extract(epoch FROM clock_timestamp())::bigint;
+  v_nonce text := gen_random_uuid()::text;
+  v_secret bytea;
+  v_payload text;
+  v_signature text;
+BEGIN
+  SELECT secret INTO STRICT v_secret
+  FROM wellbridge_private.actor_assertion_keys
+  WHERE key_id = 'ci-test' AND active;
+  v_payload := 'ci-test|' || p_actor::text || '|' || v_epoch::text || '|' || v_nonce;
+  v_signature := encode(public.hmac(convert_to(v_payload, 'UTF8'), v_secret, 'sha256'), 'hex');
+  PERFORM public.wellbridge_set_actor_context(p_actor, 'ci-test', v_epoch, v_nonce, v_signature);
+END;
+$test_sign$;
+
+DO $
 DECLARE
   v_owner uuid := gen_random_uuid();
   v_verifier uuid := gen_random_uuid();
@@ -40,7 +67,7 @@ BEGIN
   INSERT INTO evidence_sources(id, source_title, source_url, source_type, evidence_summary)
   VALUES (v_evidence, 'Test evidence', 'https://example.invalid/evidence', 'other', 'Synthetic security test fixture');
 
-  PERFORM set_config('app.actor_admin_id', v_admin::text, true);
+  PERFORM pg_temp.test_set_actor(v_admin);
   INSERT INTO verification_reviews(
     id, entity_type, entity_id, claim_to_verify, review_status,
     assigned_to_admin_id, created_by_admin_id
@@ -48,8 +75,10 @@ BEGIN
     v_review, 'organisation', v_org, 'Synthetic claim for security regression testing',
     'queued', NULL, v_admin
   );
+  PERFORM pg_temp.test_set_actor(v_verifier);
   INSERT INTO verification_review_evidence(review_id, evidence_id, relevance_note, linked_by_admin_id)
   VALUES (v_review, v_evidence, 'Synthetic fixture evidence', v_verifier);
+  PERFORM pg_temp.test_set_actor(v_admin);
   UPDATE verification_reviews
   SET assigned_to_admin_id = v_verifier, review_status = 'assigned'
   WHERE id = v_review;
@@ -70,7 +99,7 @@ $$;
 
 -- Verifier: own assignment visibility, no audit access, no approval powers.
 SET LOCAL ROLE wellbridge_app;
-SELECT set_config('app.actor_admin_id', current_setting('test.verifier_id'), true);
+SELECT pg_temp.test_set_actor(current_setting('test.verifier_id')::uuid);
 DO $$
 DECLARE n integer;
 BEGIN
@@ -114,7 +143,7 @@ RESET ROLE;
 
 -- Approver: can record a decision for another verifier's submitted review.
 SET LOCAL ROLE wellbridge_app;
-SELECT set_config('app.actor_admin_id', current_setting('test.approver_id'), true);
+SELECT pg_temp.test_set_actor(current_setting('test.approver_id')::uuid);
 INSERT INTO verification_decisions(review_id, decision, rationale, decided_by_admin_id)
 VALUES (current_setting('test.review_id')::uuid, 'approved', 'Synthetic independent approval test', current_setting('test.approver_id')::uuid);
 DO $$
@@ -131,7 +160,7 @@ RESET ROLE;
 
 -- Auditor: read-only audit access; cannot mutate the log.
 SET LOCAL ROLE wellbridge_app;
-SELECT set_config('app.actor_admin_id', current_setting('test.auditor_id'), true);
+SELECT pg_temp.test_set_actor(current_setting('test.auditor_id')::uuid);
 DO $$
 DECLARE n integer;
 BEGIN
@@ -148,7 +177,7 @@ RESET ROLE;
 
 -- Pathway administrator: can maintain pathway records but cannot administer roles.
 SET LOCAL ROLE wellbridge_app;
-SELECT set_config('app.actor_admin_id', current_setting('test.admin_id'), true);
+SELECT pg_temp.test_set_actor(current_setting('test.admin_id')::uuid);
 DO $$
 DECLARE n integer;
 BEGIN
@@ -171,7 +200,7 @@ RESET ROLE;
 
 -- Platform owner: controlled role grant/revocation; target history is retained.
 SET LOCAL ROLE wellbridge_app;
-SELECT set_config('app.actor_admin_id', current_setting('test.owner_id'), true);
+SELECT pg_temp.test_set_actor(current_setting('test.owner_id')::uuid);
 SELECT set_config(
   'test.assignment_id',
   wellbridge_grant_admin_role(
