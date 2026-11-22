@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import {
   withAdminDatabaseContext,
   type WellBridgeDatabaseClient,
+  type ResolvedDatabaseActor,
 } from "@/lib/admin-database-context";
 
 /**
@@ -69,7 +70,7 @@ export async function requireIndependentPathwayApproval(
 export async function withRequiredAdminDatabasePermission<T>(
   client: WellBridgeDatabaseClient,
   permission: AdminPermission,
-  work: Parameters<typeof withAdminDatabaseContext<T>>[3],
+  work: (transaction: WellBridgeDatabaseClient, actor: ResolvedDatabaseActor) => Promise<T>,
 ): Promise<T> {
   const session = await auth();
 
