@@ -64,6 +64,8 @@ DECLARE
   v_auditor uuid := gen_random_uuid();
   v_admin uuid := gen_random_uuid();
   v_target uuid := gen_random_uuid();
+  v_suspended uuid := gen_random_uuid();
+  v_owner_assignment uuid;
   v_country uuid := gen_random_uuid();
   v_org uuid := gen_random_uuid();
   v_evidence uuid := gen_random_uuid();
@@ -77,7 +79,8 @@ BEGIN
     (v_approver, 'https://issuer.test', 'approver-' || v_approver, 'active'),
     (v_auditor, 'https://issuer.test', 'auditor-' || v_auditor, 'active'),
     (v_admin, 'https://issuer.test', 'admin-' || v_admin, 'active'),
-    (v_target, 'https://issuer.test', 'target-' || v_target, 'active');
+    (v_target, 'https://issuer.test', 'target-' || v_target, 'active'),
+    (v_suspended, 'https://issuer.test', 'suspended-' || v_suspended, 'suspended');
 
   INSERT INTO admin_role_assignments(admin_identity_id, role_name, granted_by_admin_id, grant_reason)
   VALUES
@@ -86,6 +89,8 @@ BEGIN
     (v_approver, 'pathway_approver', v_owner, 'test fixture'),
     (v_auditor, 'audit_reviewer', v_owner, 'test fixture'),
     (v_admin, 'pathway_administrator', v_owner, 'test fixture');
+  SELECT id INTO v_owner_assignment FROM admin_role_assignments
+    WHERE admin_identity_id = v_owner AND role_name = 'platform_owner';
 
   INSERT INTO countries(id, iso2, name) VALUES (v_country, 'ZZ', 'Test Country');
   INSERT INTO organisations(id, country_id, name, organisation_type, notes)
@@ -130,6 +135,8 @@ BEGIN
   PERFORM set_config('test.auditor_id', v_auditor::text, true);
   PERFORM set_config('test.admin_id', v_admin::text, true);
   PERFORM set_config('test.target_id', v_target::text, true);
+  PERFORM set_config('test.suspended_id', v_suspended::text, true);
+  PERFORM set_config('test.owner_assignment_id', v_owner_assignment::text, true);
   PERFORM set_config('test.review_id', v_review::text, true);
   PERFORM set_config('test.org_id', v_org::text, true);
 END;
@@ -261,15 +268,41 @@ SELECT set_config(
   true
 );
 SELECT wellbridge_revoke_admin_role(current_setting('test.assignment_id')::uuid, 'security regression revoke');
-DO $$
+DO $
 DECLARE n integer;
 BEGIN
+  IF public.wellbridge_resolve_admin_identity(
+    'https://issuer.test',
+    'suspended-' || current_setting('test.suspended_id')
+  ) IS NOT NULL THEN
+    RAISE EXCEPTION 'Suspended administrator identity was resolved';
+  END IF;
+  BEGIN
+    PERFORM wellbridge_grant_admin_role(
+      current_setting('test.suspended_id')::uuid,
+      'pathway_verifier',
+      'must reject inactive identity',
+      NULL
+    );
+    RAISE EXCEPTION 'Platform owner unexpectedly granted a role to a suspended identity';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM = 'Platform owner unexpectedly granted a role to a suspended identity' THEN RAISE; END IF;
+  END;
+  BEGIN
+    PERFORM wellbridge_revoke_admin_role(
+      current_setting('test.owner_assignment_id')::uuid,
+      'must retain final owner'
+    );
+    RAISE EXCEPTION 'Platform owner unexpectedly revoked the final platform owner';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM = 'Platform owner unexpectedly revoked the final platform owner' THEN RAISE; END IF;
+  END;
   SELECT count(*) INTO n FROM admin_role_assignments
   WHERE id = current_setting('test.assignment_id')::uuid
     AND revoked_at IS NOT NULL AND revoked_by_admin_id = current_setting('test.owner_id')::uuid;
   IF n <> 1 THEN RAISE EXCEPTION 'Platform owner role revocation was not recorded'; END IF;
 END;
-$$;
+$;
 RESET ROLE;
 
 ROLLBACK;
