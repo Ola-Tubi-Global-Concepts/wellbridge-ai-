@@ -320,6 +320,7 @@ CREATE OR REPLACE FUNCTION guard_review_assignment()
 RETURNS trigger
 LANGUAGE plpgsql
 VOLATILE
+SECURITY DEFINER
 SET search_path = pg_catalog, public, pg_temp
 AS $assignment_guard$
 BEGIN
