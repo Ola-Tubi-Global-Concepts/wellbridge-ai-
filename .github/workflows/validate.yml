@@ -1,4 +1,4 @@
-name: WellBridge AI Build Validation
+name: WellBridge AI Build and Database Security Validation
 
 on:
   push:
@@ -12,6 +12,22 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: wellbridge_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d wellbridge_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/wellbridge_test
 
     steps:
       - name: Checkout source
@@ -36,3 +52,17 @@ jobs:
 
       - name: Build application
         run: npm run build
+
+      - name: Create restricted test application role
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -c "CREATE ROLE wellbridge_app NOLOGIN NOSUPERUSER NOBYPASSRLS;"
+
+      - name: Apply pathway schema migrations to disposable PostgreSQL
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001_healthcare_pathway_verification.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/002_contact_channels_and_area_authorities.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/003_admin_verification_security.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/004_admin_access_policies_and_role_governance.sql
+
+      - name: Run administrator RLS and separation-of-duties regression tests
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f tests/db/migration-004-security-tests.sql
