@@ -13,8 +13,10 @@ import {
 } from "@/lib/admin-database-context";
 
 /**
- * Server-side permission gate for Route Handlers and Server Actions.
- * Do not rely on conditional rendering in the admin UI as an access control.
+ * Legacy Entra-claim gate for UI/session presentation only.
+ * @deprecated Do not use this function to authorise protected database reads or writes.
+ * Use withRequiredAdminDatabasePermission so current database roles and a signed
+ * actor assertion are checked inside the same transaction as the protected work.
  */
 export async function requireAdminPermission(permission: AdminPermission) {
   const session = await auth();
@@ -39,9 +41,9 @@ export async function requireAdminPermission(permission: AdminPermission) {
 }
 
 /**
- * Approval gate. The caller MUST load verifiedByUserId from the persisted
- * pathway record on the server before calling this function. Never pass an
- * actor ID or verifier ID supplied by a browser request.
+ * Legacy session-claim separation-of-duties check for UI presentation only.
+ * @deprecated Approval writes must use withRequiredAdminDatabasePermission and
+ * the database decision trigger; this helper alone is not an approval control.
  */
 export async function requireIndependentPathwayApproval(
   verifiedByUserId: string | null | undefined,
