@@ -92,7 +92,7 @@ export default function CheckInPage() {
                   checked={safetyChoice === "unsure"}
                   onChange={() => setSafetyChoice("unsure")}
                 />{" "}
-                I'm not sure.
+                I&apos;m not sure.
               </label>
               <br />
               <label>
@@ -103,7 +103,7 @@ export default function CheckInPage() {
                   checked={safetyChoice === "unsafe"}
                   onChange={() => setSafetyChoice("unsafe")}
                 />{" "}
-                No, I don't feel safe.
+                No, I don&apos;t feel safe.
               </label>
             </fieldset>
 
