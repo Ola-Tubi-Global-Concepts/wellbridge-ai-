@@ -6,6 +6,10 @@ import {
   type AdminPermission,
 } from "@/lib/admin-permissions";
 import { redirect } from "next/navigation";
+import {
+  withAdminDatabaseContext,
+  type WellBridgeDatabaseClient,
+} from "@/lib/admin-database-context";
 
 /**
  * Server-side permission gate for Route Handlers and Server Actions.
@@ -52,4 +56,35 @@ export async function requireIndependentPathwayApproval(
   }
 
   return actor;
+}
+
+
+/**
+ * Database-authoritative gate for protected administrative data operations.
+ * The caller must pass a checked-out server-side client and perform all work
+ * inside the supplied callback. The helper opens/commits the transaction,
+ * switches to wellbridge_app, resolves the immutable Entra identity, verifies
+ * the signed actor assertion, and checks current database roles.
+ */
+export async function withRequiredAdminDatabasePermission<T>(
+  client: WellBridgeDatabaseClient,
+  permission: AdminPermission,
+  work: Parameters<typeof withAdminDatabaseContext<T>>[3],
+): Promise<T> {
+  const session = await auth();
+
+  if (!session?.user) {
+    redirect("/admin-sign-in");
+  }
+
+  if (!session.user.issuer || !session.user.id) {
+    throw new Error("Forbidden: validated Entra issuer and subject are required.");
+  }
+
+  return withAdminDatabaseContext(
+    client,
+    { issuer: session.user.issuer, subject: session.user.id },
+    permission,
+    work,
+  );
 }
