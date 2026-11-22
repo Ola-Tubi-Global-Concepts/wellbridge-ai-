@@ -23,8 +23,9 @@ export default async function AdminHomePage() {
         <div className="notice">
           <strong>Signed-in administrator</strong>
           <p>{session?.user?.name ?? session?.user?.email ?? "Microsoft account"}</p>
-          <strong>Assigned application roles</strong>
+          <strong>Entra sign-in role claims (display only)</strong>
           <p>{roles.join(", ") || "No application roles received"}</p>
+          <p>Database-backed WellBridge roles will be authoritative for protected records and actions when the database connection is provisioned.</p>
           <strong>Tenant</strong>
           <p>{session?.user?.tenantId ?? "Not available"}</p>
         </div>
