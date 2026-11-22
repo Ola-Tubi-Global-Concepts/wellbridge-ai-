@@ -7,10 +7,11 @@
 1. `migrations/001_healthcare_pathway_verification.sql` — core register tables.
 2. `migrations/002_contact_channels_and_area_authorities.sql` — multiple service contact channels and separate administrative oversight records.
 3. `migrations/003_admin_verification_security.sql` — private administrator identities, role assignments, verification workflow, evidence metadata, decisions, audit triggers and RLS enablement.
-4. `migrations/004_admin_access_policies_and_role_governance.sql` — restricted `wellbridge_app` grants, explicit RLS policies, controlled role governance and workflow enforcement (validation only).\n5. `migrations/005_signed_actor_context_and_review_isolation.sql` — HMAC-signed transaction-bound actor assertions, immutable Entra identity lookup, stricter review/evidence RLS, verified audit attribution and non-login application-role checks (validation only).
-5. `seeds/001_nigeria_lagos_candidates.sql` — cautious Nigeria/Lagos desk-research candidates.
-6. `seeds/002_candidate_evidence_links.sql` — attaches public-source review events to the candidate organisations, facilities and services.
-7. `seeds/003_additional_official_sources.sql` — adds Lagos State agency-directory and emergency-contact evidence.
+4. `migrations/004_admin_access_policies_and_role_governance.sql` — restricted `wellbridge_app` grants, explicit RLS policies, controlled role governance and workflow enforcement (validation only). 
+5. `migrations/005_signed_actor_context_and_review_isolation.sql` — HMAC-signed transaction-bound actor assertions, immutable Entra identity lookup, stricter review/evidence RLS, verified audit attribution and non-login application-role checks (validation only).
+6. `seeds/001_nigeria_lagos_candidates.sql` — cautious Nigeria/Lagos desk-research candidates.
+7. `seeds/002_candidate_evidence_links.sql` — attaches public-source review events to the candidate organisations, facilities and services.
+8. `seeds/003_additional_official_sources.sql` — adds Lagos State agency-directory and emergency-contact evidence.
 
 Apply only to a disposable PostgreSQL development database after reviewing the SQL. Do not run against production.
 
