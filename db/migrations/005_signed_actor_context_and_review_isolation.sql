@@ -132,8 +132,7 @@ GRANT EXECUTE ON FUNCTION wellbridge_set_actor_context(uuid,text,bigint,text,tex
 
 CREATE OR REPLACE FUNCTION wellbridge_current_admin_id()
 RETURNS uuid
-LANGUAGE plpgsql
-STABLE
+LANGUAGE plpgsql\nVOLATILE
 SECURITY DEFINER
 SET search_path = pg_catalog, public, wellbridge_private, pg_temp
 AS $current_admin$
@@ -155,8 +154,7 @@ GRANT EXECUTE ON FUNCTION wellbridge_current_admin_id() TO wellbridge_app;
 -- Rebuild role helpers so every role decision requires a valid signed assertion.
 CREATE OR REPLACE FUNCTION wellbridge_has_role(p_role text)
 RETURNS boolean
-LANGUAGE sql
-STABLE
+LANGUAGE sql\nVOLATILE
 SECURITY DEFINER
 SET search_path = pg_catalog, public, wellbridge_private, pg_temp
 AS $has_role$
@@ -172,8 +170,7 @@ $has_role$;
 
 CREATE OR REPLACE FUNCTION wellbridge_has_any_role(VARIADIC p_roles text[])
 RETURNS boolean
-LANGUAGE sql
-STABLE
+LANGUAGE sql\nVOLATILE
 SECURITY DEFINER
 SET search_path = pg_catalog, public, wellbridge_private, pg_temp
 AS $has_any_role$
@@ -195,8 +192,7 @@ GRANT EXECUTE ON FUNCTION wellbridge_has_any_role(text[]) TO wellbridge_app;
 -- approvers, auditors and platform owners retain their distinct operational scopes.
 CREATE OR REPLACE FUNCTION wellbridge_can_read_review(p_review_id uuid)
 RETURNS boolean
-LANGUAGE plpgsql
-STABLE
+LANGUAGE plpgsql\nVOLATILE
 SECURITY DEFINER
 SET search_path = pg_catalog, public, wellbridge_private, pg_temp
 AS $review_access$
@@ -256,6 +252,72 @@ CREATE POLICY reviews_update_administrator_or_assignee ON public.verification_re
     OR (assigned_to_admin_id = public.wellbridge_current_admin_id()
         AND public.wellbridge_has_role('pathway_verifier'))
   );
+
+
+-- Evidence rows inherit the same assignment-aware visibility as their review.
+DROP POLICY IF EXISTS review_evidence_insert_authorised ON public.verification_review_evidence;
+CREATE POLICY review_evidence_insert_authorised ON public.verification_review_evidence
+  FOR INSERT TO wellbridge_app
+  WITH CHECK (
+    linked_by_admin_id = public.wellbridge_current_admin_id()
+    AND public.wellbridge_can_read_review(review_id)
+    AND public.wellbridge_has_any_role('platform_owner','pathway_administrator','pathway_verifier')
+  );
+DROP POLICY IF EXISTS attachments_insert_authorised ON public.evidence_attachments;
+CREATE POLICY attachments_insert_authorised ON public.evidence_attachments
+  FOR INSERT TO wellbridge_app
+  WITH CHECK (
+    uploaded_by_admin_id = public.wellbridge_current_admin_id()
+    AND public.wellbridge_can_read_review(review_id)
+    AND public.wellbridge_has_any_role('platform_owner','pathway_administrator','pathway_verifier')
+  );
+
+-- Audit attribution is derived from a verified assertion, never a raw GUC.
+CREATE OR REPLACE FUNCTION write_admin_audit_event()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, wellbridge_private, pg_temp
+AS $audit_verified$
+DECLARE
+  v_old jsonb;
+  v_new jsonb;
+  v_target_id text;
+  v_changed_fields text[];
+BEGIN
+  IF TG_OP = 'INSERT' THEN
+    v_new := to_jsonb(NEW);
+    v_target_id := v_new ->> 'id';
+    SELECT COALESCE(array_agg(k ORDER BY k), '{}') INTO v_changed_fields
+    FROM jsonb_object_keys(v_new) AS x(k);
+  ELSIF TG_OP = 'UPDATE' THEN
+    v_old := to_jsonb(OLD);
+    v_new := to_jsonb(NEW);
+    v_target_id := v_new ->> 'id';
+    SELECT COALESCE(array_agg(n.k ORDER BY n.k), '{}') INTO v_changed_fields
+    FROM jsonb_object_keys(v_new) AS n(k)
+    WHERE v_old -> n.k IS DISTINCT FROM v_new -> n.k;
+  ELSE
+    v_old := to_jsonb(OLD);
+    v_target_id := v_old ->> 'id';
+    SELECT COALESCE(array_agg(k ORDER BY k), '{}') INTO v_changed_fields
+    FROM jsonb_object_keys(v_old) AS x(k);
+  END IF;
+
+  INSERT INTO public.audit_log (
+    actor_admin_id, actor_source, request_id, action,
+    target_table, target_id, changed_fields
+  ) VALUES (
+    public.wellbridge_current_admin_id(),
+    COALESCE(nullif(current_setting('app.actor_source', true), ''), 'application'),
+    nullif(current_setting('app.request_id', true), ''),
+    TG_OP, TG_TABLE_NAME, v_target_id, v_changed_fields
+  );
+
+  IF TG_OP = 'DELETE' THEN RETURN OLD; END IF;
+  RETURN NEW;
+END;
+$audit_verified$;
 
 -- App role must not own protected objects or be able to assume elevated roles.
 DO $role_hardening$
