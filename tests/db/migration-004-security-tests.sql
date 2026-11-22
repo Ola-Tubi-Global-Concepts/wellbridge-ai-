@@ -97,7 +97,8 @@ BEGIN
     INSERT INTO verification_decisions(review_id, decision, rationale, decided_by_admin_id)
     VALUES (current_setting('test.review_id')::uuid, 'approved', 'forbidden test', current_setting('test.verifier_id')::uuid);
     RAISE EXCEPTION 'Verifier unexpectedly inserted an approval decision';
-  EXCEPTION WHEN insufficient_privilege THEN NULL;
+  EXCEPTION WHEN insufficient_privilege OR raise_exception THEN
+    IF SQLERRM = 'Verifier unexpectedly inserted an approval decision' THEN RAISE; END IF;
   END;
   UPDATE organisations SET notes = 'verifier must not change this'
     WHERE id = current_setting('test.org_id')::uuid;
