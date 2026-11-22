@@ -166,7 +166,7 @@ RETURNS trigger
 LANGUAGE plpgsql
 SECURITY DEFINER
 SET search_path = pg_catalog, public, pg_temp
-AS $
+AS $decision_update$
 BEGIN
   UPDATE public.verification_reviews
   SET review_status = NEW.decision,
@@ -175,7 +175,7 @@ BEGIN
   WHERE id = NEW.review_id;
   RETURN NEW;
 END;
-$;
+$decision_update$;
 
 -- A decision must be made by the authenticated database actor, who must be
 -- an active approver/owner and must differ from the assigned verifier.
