@@ -159,6 +159,24 @@ BEGIN
 END;
 $$;
 
+-- The existing AFTER INSERT trigger runs with this tightly scoped definer
+-- function so an approver need not receive direct UPDATE rights on review rows.
+CREATE OR REPLACE FUNCTION apply_verification_decision_to_review()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $
+BEGIN
+  UPDATE public.verification_reviews
+  SET review_status = NEW.decision,
+      closed_at = CASE WHEN NEW.decision IN ('approved','rejected') THEN statement_timestamp() ELSE NULL END,
+      updated_at = statement_timestamp()
+  WHERE id = NEW.review_id;
+  RETURN NEW;
+END;
+$;
+
 -- A decision must be made by the authenticated database actor, who must be
 -- an active approver/owner and must differ from the assigned verifier.
 CREATE OR REPLACE FUNCTION enforce_verification_decision_rules()
