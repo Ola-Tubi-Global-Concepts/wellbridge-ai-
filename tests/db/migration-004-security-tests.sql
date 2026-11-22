@@ -280,6 +280,22 @@ BEGIN
     WHERE id = current_setting('test.org_id')::uuid AND notes = 'administrator update permitted';
   IF n <> 1 THEN RAISE EXCEPTION 'Pathway administrator could not update pathway record'; END IF;
   BEGIN
+    UPDATE verification_reviews
+      SET assigned_to_admin_id = current_setting('test.suspended_id')::uuid
+      WHERE id = current_setting('test.review_id')::uuid;
+    RAISE EXCEPTION 'Pathway administrator unexpectedly assigned a suspended identity';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM = 'Pathway administrator unexpectedly assigned a suspended identity' THEN RAISE; END IF;
+  END;
+  BEGIN
+    UPDATE verification_reviews
+      SET assigned_to_admin_id = current_setting('test.target_id')::uuid
+      WHERE id = current_setting('test.review_id')::uuid;
+    RAISE EXCEPTION 'Pathway administrator unexpectedly assigned a non-verifier';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM = 'Pathway administrator unexpectedly assigned a non-verifier' THEN RAISE; END IF;
+  END;
+  BEGIN
     PERFORM wellbridge_grant_admin_role(
       current_setting('test.target_id')::uuid, 'pathway_verifier', 'unauthorised grant test', NULL
     );
