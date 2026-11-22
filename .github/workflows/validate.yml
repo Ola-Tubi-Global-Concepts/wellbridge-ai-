@@ -1,7 +1,9 @@
-
 name: WellBridge AI Build Validation
 
 on:
+  push:
+    branches:
+      - feature/admin-verification-system
   workflow_dispatch:
 
 permissions:
