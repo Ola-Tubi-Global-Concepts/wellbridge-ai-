@@ -51,8 +51,11 @@ BEGIN
   INSERT INTO verification_review_evidence(review_id, evidence_id, relevance_note, linked_by_admin_id)
   VALUES (v_review, v_evidence, 'Synthetic fixture evidence', v_verifier);
   UPDATE verification_reviews
-  SET assigned_to_admin_id = v_verifier, review_status = 'submitted'
+  SET assigned_to_admin_id = v_verifier, review_status = 'assigned'
   WHERE id = v_review;
+  PERFORM set_config('app.actor_admin_id', v_verifier::text, true);
+  UPDATE verification_reviews SET review_status = 'in_progress' WHERE id = v_review;
+  UPDATE verification_reviews SET review_status = 'submitted' WHERE id = v_review;
 
   PERFORM set_config('test.owner_id', v_owner::text, true);
   PERFORM set_config('test.verifier_id', v_verifier::text, true);
