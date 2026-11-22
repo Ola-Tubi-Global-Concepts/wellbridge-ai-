@@ -429,10 +429,35 @@ TO wellbridge_app;
 GRANT INSERT ON verification_reviews, verification_review_evidence,
   evidence_attachments, verification_decisions, evidence_sources, verification_events
 TO wellbridge_app;
-GRANT UPDATE ON verification_reviews, evidence_attachments,
-  organisations, facilities, services, facility_services, service_contact_channels,
-  referral_relationships, professional_credentials, administrative_area_authorities
-TO wellbridge_app;
+GRANT UPDATE (claim_to_verify, priority, due_at, assigned_to_admin_id, review_status)
+  ON verification_reviews TO wellbridge_app;
+GRANT UPDATE (name, organisation_type, official_website, general_contact_email,
+  general_contact_phone, status, notes, updated_at)
+  ON organisations TO wellbridge_app;
+GRANT UPDATE (organisation_id, country_id, administrative_area_id, official_name,
+  facility_type, address, public_website, public_phone, public_email, operating_status,
+  verification_status, last_verified_at, next_review_at, updated_at)
+  ON facilities TO wellbridge_app;
+GRANT UPDATE (organisation_id, service_name, service_category, description, age_min,
+  age_max, cost_description, languages, eligibility_notes, scope_limitations,
+  verification_status, last_verified_at, next_review_at, updated_at)
+  ON services TO wellbridge_app;
+GRANT UPDATE (availability_notes, opening_hours, appointment_required, walk_in_allowed,
+  fee_notes, verification_status, last_verified_at, next_review_at)
+  ON facility_services TO wellbridge_app;
+GRANT UPDATE (service_id, channel_type, channel_value, display_label, availability_claim,
+  verification_status, evidence_id, last_verified_at, next_review_at, notes)
+  ON service_contact_channels TO wellbridge_app;
+GRANT UPDATE (assignment_scope, acceptance_process, required_documents,
+  out_of_hours_process, fallback_process, verification_status, last_verified_at,
+  next_review_at)
+  ON referral_relationships TO wellbridge_app;
+GRANT UPDATE (professional_role, regulator_name, regulator_register_url,
+  registration_reference, credential_status, checked_at, check_evidence_id, notes)
+  ON professional_credentials TO wellbridge_app;
+GRANT UPDATE (responsibility_type, verification_status, evidence_id,
+  responsibility_notes, last_verified_at, next_review_at)
+  ON administrative_area_authorities TO wellbridge_app;
 
 REVOKE ALL ON FUNCTION wellbridge_current_admin_id() FROM PUBLIC;
 REVOKE ALL ON FUNCTION wellbridge_has_role(text) FROM PUBLIC;
