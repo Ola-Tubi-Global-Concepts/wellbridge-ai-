@@ -89,6 +89,7 @@ DO $fixtures$
 DECLARE
   v_owner uuid := gen_random_uuid();
   v_verifier uuid := gen_random_uuid();
+  v_other_verifier uuid := gen_random_uuid();
   v_approver uuid := gen_random_uuid();
   v_auditor uuid := gen_random_uuid();
   v_admin uuid := gen_random_uuid();
@@ -105,6 +106,7 @@ BEGIN
   VALUES
     (v_owner, 'https://issuer.test', 'owner-' || v_owner, 'active'),
     (v_verifier, 'https://issuer.test', 'verifier-' || v_verifier, 'active'),
+    (v_other_verifier, 'https://issuer.test', 'other-verifier-' || v_other_verifier, 'active'),
     (v_approver, 'https://issuer.test', 'approver-' || v_approver, 'active'),
     (v_auditor, 'https://issuer.test', 'auditor-' || v_auditor, 'active'),
     (v_admin, 'https://issuer.test', 'admin-' || v_admin, 'active'),
@@ -115,6 +117,7 @@ BEGIN
   VALUES
     (v_owner, 'platform_owner', v_owner, 'test fixture'),
     (v_verifier, 'pathway_verifier', v_owner, 'test fixture'),
+    (v_other_verifier, 'pathway_verifier', v_owner, 'test fixture'),
     (v_approver, 'pathway_approver', v_owner, 'test fixture'),
     (v_auditor, 'audit_reviewer', v_owner, 'test fixture'),
     (v_admin, 'pathway_administrator', v_owner, 'test fixture');
@@ -154,7 +157,7 @@ BEGIN
     'queued', NULL, v_admin
   );
   UPDATE verification_reviews
-    SET assigned_to_admin_id = v_admin, review_status = 'assigned'
+    SET assigned_to_admin_id = v_other_verifier, review_status = 'assigned'
     WHERE id = v_other_review;
 
   PERFORM pg_temp.test_set_actor(v_verifier);
