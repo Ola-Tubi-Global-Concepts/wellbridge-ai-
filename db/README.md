@@ -6,10 +6,11 @@
 
 1. `migrations/001_healthcare_pathway_verification.sql` — core register tables.
 2. `migrations/002_contact_channels_and_area_authorities.sql` — multiple service contact channels and separate administrative oversight records.
-3. `migrations/003_admin_verification_security.sql` — private administrator identities, role assignments, verification workflow, evidence metadata, decisions, audit triggers and default-deny RLS (validation only; no app grants or policies).
-4. `seeds/001_nigeria_lagos_candidates.sql` — cautious Nigeria/Lagos desk-research candidates.
-5. `seeds/002_candidate_evidence_links.sql` — attaches public-source review events to the candidate organisations, facilities and services.
-6. `seeds/003_additional_official_sources.sql` — adds Lagos State agency-directory and emergency-contact evidence.
+3. `migrations/003_admin_verification_security.sql` — private administrator identities, role assignments, verification workflow, evidence metadata, decisions, audit triggers and RLS enablement.
+4. `migrations/004_admin_access_policies_and_role_governance.sql` — restricted `wellbridge_app` grants, explicit RLS policies, server-context identity helpers, controlled platform-owner role grant/revocation, and decision-state enforcement (validation only).
+5. `seeds/001_nigeria_lagos_candidates.sql` — cautious Nigeria/Lagos desk-research candidates.
+6. `seeds/002_candidate_evidence_links.sql` — attaches public-source review events to the candidate organisations, facilities and services.
+7. `seeds/003_additional_official_sources.sql` — adds Lagos State agency-directory and emergency-contact evidence.
 
 Apply only to a disposable PostgreSQL development database after reviewing the SQL. Do not run against production.
 
@@ -75,3 +76,14 @@ The last two counts should be zero in this initial seed. That is intentional: th
 ## Administrative verification interface — validation only
 
 Migration 003 is designed for the disposable `wellbridge-pathway-validation` Neon database only. Apply it after migrations 001 and 002. It does not configure Entra, create application grants/RLS policies, or connect the database to Azure. The companion design is `docs/admin-verification-interface-security-design.md`. The new RLS-enabled tables intentionally have no application policies; non-owner roles remain denied until a separately reviewed access-policy migration is implemented. Never use the Neon owner connection string in application code.
+
+
+## Migration 004 security validation
+
+Migration 004 requires a pre-created PostgreSQL role named `wellbridge_app`. It must be a non-owner, non-superuser role without `BYPASSRLS`. The CI workflow creates this role in a disposable PostgreSQL 16 service, applies migrations 001–004, then runs `tests/db/migration-004-security-tests.sql`. The test script rolls back its synthetic fixtures.
+
+The application role receives no direct write access to administrator identities, role assignments or audit records. Role grants and revocations go through narrowly scoped database functions and require an active `platform_owner`. The verifier, approver and auditor test cases exercise row visibility and separation of duties.
+
+**Identity-context limitation:** the RLS helper reads `app.actor_admin_id`, which the trusted server must set transaction-locally after validating the Entra identity and resolving the active database identity. PostgreSQL custom settings are not cryptographic proof; anyone holding the application database credential and arbitrary SQL execution can attempt to set them. Therefore the credential must remain server-side, SQL execution must not be exposed to users, and production use still requires a separately reviewed signed-context or equivalent hardened trust boundary. This migration is not a security certification.
+
+Do not apply migration 004 to Azure or production. Do not use the Neon owner connection string in application code.
