@@ -79,6 +79,13 @@ BEGIN
   EXCEPTION WHEN raise_exception THEN
     IF SQLERRM = 'Verifier unexpectedly changed a review to approved' THEN RAISE; END IF;
   END;
+  BEGIN
+    UPDATE verification_reviews SET review_status = 'cancelled'
+      WHERE id = current_setting('test.review_id')::uuid;
+    RAISE EXCEPTION 'Verifier unexpectedly cancelled a review';
+  EXCEPTION WHEN raise_exception THEN
+    IF SQLERRM = 'Verifier unexpectedly cancelled a review' THEN RAISE; END IF;
+  END;
   SELECT count(*) INTO n FROM verification_reviews
     WHERE id = current_setting('test.review_id')::uuid AND review_status = 'submitted';
   IF n <> 1 THEN RAISE EXCEPTION 'Verifier changed a review to approved without a decision'; END IF;
