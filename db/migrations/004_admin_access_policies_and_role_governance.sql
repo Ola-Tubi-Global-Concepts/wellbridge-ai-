@@ -1,0 +1,378 @@
+-- WellBridge AI migration 004: least-privilege administrator access and role governance
+-- VALIDATION ONLY. Apply only after migrations 001-003 to the disposable
+-- wellbridge-pathway-validation database. Never apply to production/Azure.
+-- Requires a pre-created, non-owner, non-superuser PostgreSQL role: wellbridge_app.
+-- The trusted server must set app.actor_admin_id transaction-locally only after
+-- validating Entra issuer, audience, signature, tenant, expiry and subject.
+-- This GUC is trusted-server context, NOT cryptographic proof against a leaked
+-- database credential or arbitrary SQL execution. Never expose SQL/DB credentials.
+
+BEGIN;
+
+DO $$
+DECLARE r record;
+BEGIN
+  SELECT rolname, rolsuper, rolbypassrls, rolinherit INTO r
+  FROM pg_roles WHERE rolname = 'wellbridge_app';
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Create the dedicated wellbridge_app database role before migration 004';
+  END IF;
+  IF r.rolsuper OR r.rolbypassrls THEN
+    RAISE EXCEPTION 'wellbridge_app must not be SUPERUSER or BYPASSRLS';
+  END IF;
+END;
+$$;
+
+-- Expired assignments are historical, not active. The grant function serialises
+-- grants on the identity row and rejects duplicate currently-valid assignments.
+DROP INDEX IF EXISTS uq_admin_active_role;
+CREATE INDEX IF NOT EXISTS idx_admin_role_assignment_lookup
+  ON admin_role_assignments(admin_identity_id, role_name, granted_at DESC);
+
+CREATE OR REPLACE FUNCTION wellbridge_current_admin_id()
+RETURNS uuid
+LANGUAGE plpgsql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $$
+DECLARE v_id uuid;
+BEGIN
+  BEGIN
+    v_id := nullif(current_setting('app.actor_admin_id', true), '')::uuid;
+  EXCEPTION WHEN invalid_text_representation THEN
+    RETURN NULL;
+  END;
+  IF v_id IS NULL OR NOT EXISTS (
+    SELECT 1 FROM public.admin_identities a
+    WHERE a.id = v_id AND a.account_status = 'active'
+  ) THEN
+    RETURN NULL;
+  END IF;
+  RETURN v_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION wellbridge_has_role(p_role text)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.admin_role_assignments r
+    JOIN public.admin_identities a ON a.id = r.admin_identity_id
+    WHERE r.admin_identity_id = public.wellbridge_current_admin_id()
+      AND r.role_name = p_role
+      AND r.revoked_at IS NULL
+      AND (r.expires_at IS NULL OR r.expires_at > statement_timestamp())
+      AND a.account_status = 'active'
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION wellbridge_has_any_role(VARIADIC p_roles text[])
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.admin_role_assignments r
+    JOIN public.admin_identities a ON a.id = r.admin_identity_id
+    WHERE r.admin_identity_id = public.wellbridge_current_admin_id()
+      AND r.role_name = ANY(p_roles)
+      AND r.revoked_at IS NULL
+      AND (r.expires_at IS NULL OR r.expires_at > statement_timestamp())
+      AND a.account_status = 'active'
+  );
+$$;
+
+-- Only a current platform owner can grant/revoke roles. Identity-row locking
+-- prevents concurrent duplicate active grants; expired history is retained.
+CREATE OR REPLACE FUNCTION wellbridge_grant_admin_role(
+  p_admin_identity_id uuid,
+  p_role_name text,
+  p_grant_reason text,
+  p_expires_at timestamptz DEFAULT NULL
+)
+RETURNS uuid
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $$
+DECLARE v_actor uuid; v_assignment_id uuid;
+BEGIN
+  v_actor := public.wellbridge_current_admin_id();
+  IF v_actor IS NULL OR NOT public.wellbridge_has_role('platform_owner') THEN
+    RAISE EXCEPTION 'Only an active platform owner may grant administrator roles';
+  END IF;
+  IF p_role_name NOT IN ('platform_owner','pathway_administrator','pathway_verifier','pathway_approver','audit_reviewer')
+     OR nullif(btrim(p_grant_reason), '') IS NULL
+     OR (p_expires_at IS NOT NULL AND p_expires_at <= statement_timestamp()) THEN
+    RAISE EXCEPTION 'Invalid role, grant reason or expiry';
+  END IF;
+  PERFORM 1 FROM public.admin_identities WHERE id = p_admin_identity_id FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Target administrator identity does not exist'; END IF;
+  IF EXISTS (
+    SELECT 1 FROM public.admin_role_assignments
+    WHERE admin_identity_id = p_admin_identity_id AND role_name = p_role_name
+      AND revoked_at IS NULL
+      AND (expires_at IS NULL OR expires_at > statement_timestamp())
+  ) THEN
+    RAISE EXCEPTION 'An active assignment for this role already exists';
+  END IF;
+  INSERT INTO public.admin_role_assignments
+    (admin_identity_id, role_name, granted_by_admin_id, expires_at, grant_reason)
+  VALUES (p_admin_identity_id, p_role_name, v_actor, p_expires_at, btrim(p_grant_reason))
+  RETURNING id INTO v_assignment_id;
+  RETURN v_assignment_id;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION wellbridge_revoke_admin_role(
+  p_assignment_id uuid,
+  p_reason text
+)
+RETURNS void
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $$
+DECLARE v_actor uuid;
+BEGIN
+  v_actor := public.wellbridge_current_admin_id();
+  IF v_actor IS NULL OR NOT public.wellbridge_has_role('platform_owner') THEN
+    RAISE EXCEPTION 'Only an active platform owner may revoke administrator roles';
+  END IF;
+  IF nullif(btrim(p_reason), '') IS NULL THEN
+    RAISE EXCEPTION 'A revocation reason is required';
+  END IF;
+  UPDATE public.admin_role_assignments
+  SET revoked_by_admin_id = v_actor, revoked_at = statement_timestamp(),
+      grant_reason = grant_reason || E'\nRevocation: ' || btrim(p_reason)
+  WHERE id = p_assignment_id AND revoked_at IS NULL;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Active role assignment not found'; END IF;
+END;
+$$;
+
+-- A decision must be made by the authenticated database actor, who must be
+-- an active approver/owner and must differ from the assigned verifier.
+CREATE OR REPLACE FUNCTION enforce_verification_decision_rules()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog, public, pg_temp
+AS $$
+DECLARE v_assignee uuid; v_review_status text; v_actor uuid;
+BEGIN
+  v_actor := public.wellbridge_current_admin_id();
+  IF v_actor IS NULL OR NEW.decided_by_admin_id IS DISTINCT FROM v_actor THEN
+    RAISE EXCEPTION 'Decision actor must match the authenticated administrator context';
+  END IF;
+  SELECT assigned_to_admin_id, review_status
+    INTO v_assignee, v_review_status
+  FROM public.verification_reviews
+  WHERE id = NEW.review_id
+  FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'Verification review does not exist'; END IF;
+  IF v_assignee IS NOT NULL AND v_assignee = v_actor THEN
+    RAISE EXCEPTION 'A reviewer cannot decide their own verification review';
+  END IF;
+  IF v_review_status NOT IN ('submitted','changes_requested') THEN
+    RAISE EXCEPTION 'A decision can only be recorded for a submitted review';
+  END IF;
+  IF NOT public.wellbridge_has_any_role('pathway_approver','platform_owner') THEN
+    RAISE EXCEPTION 'An active pathway approver or platform owner role is required';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+-- Replace the original policy-free state with explicit default-deny RLS.
+DO $$
+DECLARE t text;
+BEGIN
+  FOREACH t IN ARRAY ARRAY[
+    'admin_identities','admin_role_assignments','verification_reviews',
+    'verification_review_evidence','evidence_attachments','verification_decisions',
+    'audit_log','organisations','facilities','services','facility_services',
+    'service_contact_channels','referral_relationships','professional_credentials',
+    'administrative_area_authorities','evidence_sources','verification_events'
+  ] LOOP
+    EXECUTE format('ALTER TABLE public.%I ENABLE ROW LEVEL SECURITY', t);
+    EXECUTE format('ALTER TABLE public.%I FORCE ROW LEVEL SECURITY', t);
+  END LOOP;
+END;
+$$;
+
+CREATE POLICY admin_identities_read_self_or_owner ON admin_identities
+  FOR SELECT TO wellbridge_app
+  USING (id = wellbridge_current_admin_id() OR wellbridge_has_role('platform_owner'));
+
+CREATE POLICY admin_roles_read_self_or_owner ON admin_role_assignments
+  FOR SELECT TO wellbridge_app
+  USING (admin_identity_id = wellbridge_current_admin_id() OR wellbridge_has_role('platform_owner'));
+
+CREATE POLICY reviews_read_authorised ON verification_reviews
+  FOR SELECT TO wellbridge_app
+  USING (wellbridge_has_any_role('platform_owner','pathway_administrator','pathway_verifier','pathway_approver','audit_reviewer'));
+
+CREATE POLICY reviews_insert_administrator ON verification_reviews
+  FOR INSERT TO wellbridge_app
+  WITH CHECK (
+    created_by_admin_id = wellbridge_current_admin_id()
+    AND wellbridge_has_any_role('platform_owner','pathway_administrator')
+  );
+
+CREATE POLICY reviews_update_administrator_or_assignee ON verification_reviews
+  FOR UPDATE TO wellbridge_app
+  USING (
+    wellbridge_has_any_role('platform_owner','pathway_administrator')
+    OR (assigned_to_admin_id = wellbridge_current_admin_id()
+        AND wellbridge_has_role('pathway_verifier'))
+  )
+  WITH CHECK (
+    wellbridge_has_any_role('platform_owner','pathway_administrator')
+    OR (assigned_to_admin_id = wellbridge_current_admin_id()
+        AND wellbridge_has_role('pathway_verifier'))
+  );
+
+CREATE POLICY review_evidence_read_authorised ON verification_review_evidence
+  FOR SELECT TO wellbridge_app
+  USING (wellbridge_has_any_role('platform_owner','pathway_administrator','pathway_verifier','pathway_approver','audit_reviewer'));
+CREATE POLICY review_evidence_insert_authorised ON verification_review_evidence
+  FOR INSERT TO wellbridge_app
+  WITH CHECK (
+    linked_by_admin_id = wellbridge_current_admin_id()
+    AND wellbridge_has_any_role('platform_owner','pathway_administrator','pathway_verifier')
+  );
+
+CREATE POLICY attachments_read_authorised ON evidence_attachments
+  FOR SELECT TO wellbridge_app
+  USING (wellbridge_has_any_role('platform_owner','pathway_administrator','pathway_verifier','pathway_approver','audit_reviewer'));
+CREATE POLICY attachments_insert_authorised ON evidence_attachments
+  FOR INSERT TO wellbridge_app
+  WITH CHECK (
+    uploaded_by_admin_id = wellbridge_current_admin_id()
+    AND wellbridge_has_any_role('platform_owner','pathway_administrator','pathway_verifier')
+  );
+CREATE POLICY attachments_update_administrator ON evidence_attachments
+  FOR UPDATE TO wellbridge_app
+  USING (wellbridge_has_any_role('platform_owner','pathway_administrator'))
+  WITH CHECK (wellbridge_has_any_role('platform_owner','pathway_administrator'));
+
+CREATE POLICY decisions_read_authorised ON verification_decisions
+  FOR SELECT TO wellbridge_app
+  USING (wellbridge_has_any_role('platform_owner','pathway_administrator','pathway_verifier','pathway_approver','audit_reviewer'));
+CREATE POLICY decisions_insert_approver ON verification_decisions
+  FOR INSERT TO wellbridge_app
+  WITH CHECK (
+    decided_by_admin_id = wellbridge_current_admin_id()
+    AND wellbridge_has_any_role('platform_owner','pathway_approver')
+  );
+
+CREATE POLICY audit_read_owner_or_reviewer ON audit_log
+  FOR SELECT TO wellbridge_app
+  USING (wellbridge_has_any_role('platform_owner','audit_reviewer'));
+
+-- Pathway data is readable only to authenticated, active administrators with
+-- a recognised role. Mutations are restricted to pathway administrators/owners.
+DO $$
+DECLARE t text;
+BEGIN
+  FOREACH t IN ARRAY ARRAY[
+    'organisations','facilities','services','facility_services',
+    'service_contact_channels','referral_relationships',
+    'professional_credentials','administrative_area_authorities',
+    'evidence_sources','verification_events'
+  ] LOOP
+    EXECUTE format(
+      'CREATE POLICY %I ON public.%I FOR SELECT TO wellbridge_app USING (public.wellbridge_has_any_role(''platform_owner'',''pathway_administrator'',''pathway_verifier'',''pathway_approver'',''audit_reviewer''))',
+      t || '_read_admin', t
+    );
+  END LOOP;
+END;
+$$;
+
+CREATE POLICY organisations_write_pathway_admin ON organisations
+  FOR ALL TO wellbridge_app
+  USING (wellbridge_has_any_role('platform_owner','pathway_administrator'))
+  WITH CHECK (wellbridge_has_any_role('platform_owner','pathway_administrator'));
+CREATE POLICY facilities_write_pathway_admin ON facilities
+  FOR ALL TO wellbridge_app
+  USING (wellbridge_has_any_role('platform_owner','pathway_administrator'))
+  WITH CHECK (wellbridge_has_any_role('platform_owner','pathway_administrator'));
+CREATE POLICY services_write_pathway_admin ON services
+  FOR ALL TO wellbridge_app
+  USING (wellbridge_has_any_role('platform_owner','pathway_administrator'))
+  WITH CHECK (wellbridge_has_any_role('platform_owner','pathway_administrator'));
+CREATE POLICY facility_services_write_pathway_admin ON facility_services
+  FOR ALL TO wellbridge_app
+  USING (wellbridge_has_any_role('platform_owner','pathway_administrator'))
+  WITH CHECK (wellbridge_has_any_role('platform_owner','pathway_administrator'));
+CREATE POLICY service_contact_channels_write_pathway_admin ON service_contact_channels
+  FOR ALL TO wellbridge_app
+  USING (wellbridge_has_any_role('platform_owner','pathway_administrator'))
+  WITH CHECK (wellbridge_has_any_role('platform_owner','pathway_administrator'));
+CREATE POLICY referral_relationships_write_pathway_admin ON referral_relationships
+  FOR ALL TO wellbridge_app
+  USING (wellbridge_has_any_role('platform_owner','pathway_administrator'))
+  WITH CHECK (wellbridge_has_any_role('platform_owner','pathway_administrator'));
+CREATE POLICY professional_credentials_write_pathway_admin ON professional_credentials
+  FOR ALL TO wellbridge_app
+  USING (wellbridge_has_any_role('platform_owner','pathway_administrator'))
+  WITH CHECK (wellbridge_has_any_role('platform_owner','pathway_administrator'));
+CREATE POLICY administrative_area_authorities_write_pathway_admin ON administrative_area_authorities
+  FOR ALL TO wellbridge_app
+  USING (wellbridge_has_any_role('platform_owner','pathway_administrator'))
+  WITH CHECK (wellbridge_has_any_role('platform_owner','pathway_administrator'));
+CREATE POLICY evidence_sources_write_verifier_or_admin ON evidence_sources
+  FOR INSERT TO wellbridge_app
+  WITH CHECK (wellbridge_has_any_role('platform_owner','pathway_administrator','pathway_verifier'));
+CREATE POLICY verification_events_write_verifier_or_admin ON verification_events
+  FOR INSERT TO wellbridge_app
+  WITH CHECK (wellbridge_has_any_role('platform_owner','pathway_administrator','pathway_verifier'));
+
+-- No direct role-table writes, audit writes, or deletes from the application role.
+REVOKE ALL ON admin_identities, admin_role_assignments, verification_reviews,
+  verification_review_evidence, evidence_attachments, verification_decisions,
+  audit_log, organisations, facilities, services, facility_services,
+  service_contact_channels, referral_relationships, professional_credentials,
+  administrative_area_authorities, evidence_sources, verification_events
+FROM PUBLIC, wellbridge_app;
+
+GRANT USAGE ON SCHEMA public TO wellbridge_app;
+GRANT SELECT ON admin_identities, admin_role_assignments, verification_reviews,
+  verification_review_evidence, evidence_attachments, verification_decisions,
+  audit_log, organisations, facilities, services, facility_services,
+  service_contact_channels, referral_relationships, professional_credentials,
+  administrative_area_authorities, evidence_sources, verification_events
+TO wellbridge_app;
+GRANT INSERT ON verification_reviews, verification_review_evidence,
+  evidence_attachments, verification_decisions, evidence_sources, verification_events
+TO wellbridge_app;
+GRANT UPDATE ON verification_reviews, evidence_attachments,
+  organisations, facilities, services, facility_services, service_contact_channels,
+  referral_relationships, professional_credentials, administrative_area_authorities
+TO wellbridge_app;
+GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO wellbridge_app;
+
+REVOKE ALL ON FUNCTION wellbridge_current_admin_id() FROM PUBLIC;
+REVOKE ALL ON FUNCTION wellbridge_has_role(text) FROM PUBLIC;
+REVOKE ALL ON FUNCTION wellbridge_has_any_role(text[]) FROM PUBLIC;
+REVOKE ALL ON FUNCTION wellbridge_grant_admin_role(uuid,text,text,timestamptz) FROM PUBLIC;
+REVOKE ALL ON FUNCTION wellbridge_revoke_admin_role(uuid,text) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION wellbridge_current_admin_id() TO wellbridge_app;
+GRANT EXECUTE ON FUNCTION wellbridge_has_role(text) TO wellbridge_app;
+GRANT EXECUTE ON FUNCTION wellbridge_has_any_role(text[]) TO wellbridge_app;
+GRANT EXECUTE ON FUNCTION wellbridge_grant_admin_role(uuid,text,text,timestamptz) TO wellbridge_app;
+GRANT EXECUTE ON FUNCTION wellbridge_revoke_admin_role(uuid,text) TO wellbridge_app;
+
+-- Avoid accidental use of owner credentials by the application.
+COMMENT ON ROLE wellbridge_app IS
+  'Non-owner application role. Must not be SUPERUSER or BYPASSRLS. Trusted server only; never expose credentials to clients.';
+
+COMMIT;
