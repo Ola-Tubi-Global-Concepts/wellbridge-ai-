@@ -418,6 +418,7 @@ REVOKE ALL ON admin_identities, admin_role_assignments, verification_reviews,
   administrative_area_authorities, evidence_sources, verification_events
 FROM PUBLIC, wellbridge_app;
 
+REVOKE CREATE ON SCHEMA public FROM PUBLIC, wellbridge_app;
 GRANT USAGE ON SCHEMA public TO wellbridge_app;
 GRANT SELECT ON admin_identities, admin_role_assignments, verification_reviews,
   verification_review_evidence, evidence_attachments, verification_decisions,
