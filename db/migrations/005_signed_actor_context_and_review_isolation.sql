@@ -348,6 +348,7 @@ $assignment_guard$;
 CREATE TRIGGER trg_guard_review_assignment
 BEFORE UPDATE OF assigned_to_admin_id ON public.verification_reviews
 FOR EACH ROW EXECUTE FUNCTION guard_review_assignment();
+REVOKE ALL ON FUNCTION guard_review_assignment() FROM PUBLIC, wellbridge_app;
 
 -- Review visibility: verifier sees assigned work only; pathway administrators,
 -- approvers, auditors and platform owners retain their distinct operational scopes.
