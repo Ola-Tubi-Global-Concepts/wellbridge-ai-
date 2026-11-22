@@ -35,7 +35,7 @@ The SQL test suite checks verifier visibility and denial, independent approval, 
 
 ## Decision enforcement
 
-A decision row must be inserted by the current administrator identity and that identity must hold an active `pathway_approver` or `platform_owner` role. The decision trigger rejects self-approval and requires a submitted or returned review. A scoped SECURITY DEFINER trigger updates the review status after the decision row is recorded. A second trigger rejects direct transitions to `approved`, `rejected` or `changes_requested` without a matching decision record.
+A decision row must be inserted by the current administrator identity and that identity must hold an active `pathway_approver` or `platform_owner` role. The decision trigger rejects self-approval and requires a submitted or returned review. A scoped SECURITY DEFINER trigger updates the review status after the decision row is recorded. The decision-validation trigger also runs as SECURITY DEFINER with a fixed search path so its integrity check can lock and inspect the target review even when the approver's RLS policy does not expose that review directly. The function remains narrowly scoped to validation; it does not grant the application role general review-table access. A second trigger rejects direct transitions to `approved`, `rejected` or `changes_requested` without a matching decision record.
 
 ## Important trust-boundary limitation
 
