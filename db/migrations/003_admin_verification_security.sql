@@ -22,11 +22,13 @@ CREATE TABLE admin_identities (
 COMMENT ON TABLE admin_identities IS
   'Internal administrator mapping for validated external identities. Never use email as the identity key; store no passwords or bearer tokens.';
 
+-- Canonical role identifiers must match lib/admin-permissions.ts and Entra app roles.
 CREATE TABLE admin_role_assignments (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   admin_identity_id uuid NOT NULL REFERENCES admin_identities(id),
   role_name text NOT NULL CHECK (role_name IN
-    ('platform_owner','pathway_administrator','verifier','approver','auditor')),
+    ('platform_owner','pathway_administrator','pathway_verifier',
+     'pathway_approver','audit_reviewer')),
   granted_by_admin_id uuid REFERENCES admin_identities(id),
   granted_at timestamptz NOT NULL DEFAULT now(),
   expires_at timestamptz,
@@ -120,7 +122,6 @@ CREATE TABLE verification_decisions (
 CREATE INDEX idx_verification_decisions_review
   ON verification_decisions(review_id, decided_at DESC);
 
--- Persist the workflow state from the decision record itself.
 CREATE OR REPLACE FUNCTION apply_verification_decision_to_review()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -159,8 +160,6 @@ CREATE INDEX idx_audit_log_time ON audit_log(occurred_at DESC);
 CREATE INDEX idx_audit_log_actor_time ON audit_log(actor_admin_id, occurred_at DESC);
 CREATE INDEX idx_audit_log_target ON audit_log(target_table, target_id, occurred_at DESC);
 
--- A reviewer cannot approve their own review. The approver must hold an active
--- approver or platform_owner role at decision time.
 CREATE OR REPLACE FUNCTION enforce_verification_decision_rules()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -194,14 +193,14 @@ BEGIN
     FROM admin_role_assignments r
     JOIN admin_identities a ON a.id = r.admin_identity_id
     WHERE r.admin_identity_id = NEW.decided_by_admin_id
-      AND r.role_name IN ('approver','platform_owner')
+      AND r.role_name IN ('pathway_approver','platform_owner')
       AND r.revoked_at IS NULL
       AND (r.expires_at IS NULL OR r.expires_at > now())
       AND a.account_status = 'active'
   ) INTO v_has_approval_role;
 
   IF NOT v_has_approval_role THEN
-    RAISE EXCEPTION 'Approver must have an active approver or platform_owner role';
+    RAISE EXCEPTION 'Approver must have an active pathway_approver or platform_owner role';
   END IF;
 
   RETURN NEW;
@@ -212,8 +211,6 @@ CREATE TRIGGER trg_verification_decision_rules
 BEFORE INSERT ON verification_decisions
 FOR EACH ROW EXECUTE FUNCTION enforce_verification_decision_rules();
 
--- A review cannot be submitted until it has an assignee and at least one
--- linked evidence source. The evidence source itself must already exist.
 CREATE OR REPLACE FUNCTION enforce_review_submission_rules()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -258,9 +255,6 @@ CREATE TRIGGER trg_review_submission_rules
 BEFORE UPDATE OF review_status ON verification_reviews
 FOR EACH ROW EXECUTE FUNCTION enforce_review_submission_rules();
 
--- Generic audit trigger: records actor context, target, operation and changed
--- column names only. The trusted application server sets app.actor_admin_id
--- and app.request_id transaction-locally after validating the Entra identity.
 CREATE OR REPLACE FUNCTION write_admin_audit_event()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -326,7 +320,6 @@ CREATE TRIGGER trg_audit_log_immutable
 BEFORE UPDATE OR DELETE ON audit_log
 FOR EACH ROW EXECUTE FUNCTION prevent_audit_mutation();
 
--- Audit administrator, verification, evidence and pathway record changes.
 DO $$
 DECLARE
   t text;
@@ -357,9 +350,6 @@ BEGIN
 END;
 $$;
 
--- Default deny for non-owner database roles. No application policies or grants
--- are created in this migration. Access is intentionally unavailable until a
--- separately reviewed server-side authorisation/RLS policy migration is applied.
 ALTER TABLE admin_identities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE admin_role_assignments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE verification_reviews ENABLE ROW LEVEL SECURITY;
@@ -368,7 +358,6 @@ ALTER TABLE evidence_attachments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE verification_decisions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE audit_log ENABLE ROW LEVEL SECURITY;
 
--- Also protect the pathway records that the administrative interface will edit.
 ALTER TABLE organisations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE facilities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE services ENABLE ROW LEVEL SECURITY;
