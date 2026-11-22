@@ -389,6 +389,11 @@ BEGIN
      AND NOT public.wellbridge_has_any_role('platform_owner','pathway_administrator') THEN
     RAISE EXCEPTION 'Only a pathway administrator or platform owner may cancel a review';
   END IF;
+  IF NEW.review_status = 'submitted'
+     AND OLD.review_status IS DISTINCT FROM 'submitted'
+     AND NOT public.wellbridge_has_any_role('platform_owner','pathway_verifier') THEN
+    RAISE EXCEPTION 'Only the assigned verifier or platform owner may submit a verification review';
+  END IF;
   IF public.wellbridge_has_role('pathway_verifier')
      AND NOT public.wellbridge_has_any_role('platform_owner','pathway_administrator')
      AND NEW.review_status NOT IN ('in_progress','submitted') THEN
