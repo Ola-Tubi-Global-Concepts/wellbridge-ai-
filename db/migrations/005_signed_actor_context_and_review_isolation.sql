@@ -314,6 +314,40 @@ BEGIN
 END;
 $revoke_hardened$;
 
+
+-- Assignment changes are administrator-only and must target an active verifier.
+CREATE OR REPLACE FUNCTION guard_review_assignment()
+RETURNS trigger
+LANGUAGE plpgsql
+VOLATILE
+SET search_path = pg_catalog, public, pg_temp
+AS $assignment_guard$
+BEGIN
+  IF NEW.assigned_to_admin_id IS NOT DISTINCT FROM OLD.assigned_to_admin_id THEN
+    RETURN NEW;
+  END IF;
+  IF NOT public.wellbridge_has_any_role('platform_owner','pathway_administrator') THEN
+    RAISE EXCEPTION 'Only a pathway administrator or platform owner may change review assignment';
+  END IF;
+  IF NEW.assigned_to_admin_id IS NOT NULL AND NOT EXISTS (
+    SELECT 1
+    FROM public.admin_identities a
+    JOIN public.admin_role_assignments r ON r.admin_identity_id = a.id
+    WHERE a.id = NEW.assigned_to_admin_id
+      AND a.account_status = 'active'
+      AND r.role_name = 'pathway_verifier'
+      AND r.revoked_at IS NULL
+      AND (r.expires_at IS NULL OR r.expires_at > statement_timestamp())
+  ) THEN
+    RAISE EXCEPTION 'A review can only be assigned to an active administrator with an active pathway_verifier role';
+  END IF;
+  RETURN NEW;
+END;
+$assignment_guard$;
+CREATE TRIGGER trg_guard_review_assignment
+BEFORE UPDATE OF assigned_to_admin_id ON public.verification_reviews
+FOR EACH ROW EXECUTE FUNCTION guard_review_assignment();
+
 -- Review visibility: verifier sees assigned work only; pathway administrators,
 -- approvers, auditors and platform owners retain their distinct operational scopes.
 CREATE OR REPLACE FUNCTION wellbridge_can_read_review(p_review_id uuid)
