@@ -356,6 +356,25 @@ CREATE POLICY verification_events_write_verifier_or_admin ON verification_events
   WITH CHECK (wellbridge_has_any_role('platform_owner','pathway_administrator','pathway_verifier'));
 
 
+-- New work starts queued and cannot be created as pre-approved/submitted.
+CREATE OR REPLACE FUNCTION guard_review_creation()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog, public, pg_temp
+AS $creation_guard$
+BEGIN
+  IF NEW.created_by_admin_id IS DISTINCT FROM public.wellbridge_current_admin_id()
+     OR NEW.review_status <> 'queued'
+     OR NEW.assigned_to_admin_id IS NOT NULL THEN
+    RAISE EXCEPTION 'New reviews must be created by the current administrator in queued state without an assignee';
+  END IF;
+  RETURN NEW;
+END;
+$creation_guard$;
+CREATE TRIGGER trg_guard_review_creation
+BEFORE INSERT ON verification_reviews
+FOR EACH ROW EXECUTE FUNCTION guard_review_creation();
+
 -- Restrict verifier status transitions to work they are assigned to perform.
 CREATE OR REPLACE FUNCTION guard_review_workflow_transition()
 RETURNS trigger
@@ -426,9 +445,23 @@ GRANT SELECT ON admin_identities, admin_role_assignments, verification_reviews,
   service_contact_channels, referral_relationships, professional_credentials,
   administrative_area_authorities, evidence_sources, verification_events
 TO wellbridge_app;
-GRANT INSERT ON verification_reviews, verification_review_evidence,
-  evidence_attachments, verification_decisions, evidence_sources, verification_events
-TO wellbridge_app;
+GRANT INSERT (entity_type, entity_id, claim_to_verify, priority,
+  assigned_to_admin_id, created_by_admin_id, due_at)
+  ON verification_reviews TO wellbridge_app;
+GRANT INSERT (review_id, evidence_id, relevance_note, linked_by_admin_id)
+  ON verification_review_evidence TO wellbridge_app;
+GRANT INSERT (review_id, evidence_id, storage_provider, storage_object_key,
+  original_filename, media_type, byte_size, sha256_hex, uploaded_by_admin_id, retention_until)
+  ON evidence_attachments TO wellbridge_app;
+GRANT INSERT (review_id, decision, rationale, decided_by_admin_id)
+  ON verification_decisions TO wellbridge_app;
+GRANT INSERT (source_title, source_url, source_type, publisher, published_at,
+  evidence_summary, limitations, archived_reference)
+  ON evidence_sources TO wellbridge_app;
+GRANT INSERT (entity_type, entity_id, verification_method, outcome,
+  confirmed_by_role, confirming_organisation, confirmation_date, evidence_id,
+  details, limitations, reviewer, next_review_at)
+  ON verification_events TO wellbridge_app;
 GRANT UPDATE (claim_to_verify, priority, due_at, assigned_to_admin_id, review_status)
   ON verification_reviews TO wellbridge_app;
 GRANT UPDATE (name, organisation_type, official_website, general_contact_email,
