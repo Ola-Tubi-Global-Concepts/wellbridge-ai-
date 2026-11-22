@@ -280,6 +280,42 @@ CREATE POLICY reviews_update_administrator_or_assignee ON public.verification_re
   );
 
 
+
+DROP POLICY IF EXISTS decisions_read_authorised ON public.verification_decisions;
+CREATE POLICY decisions_read_authorised ON public.verification_decisions
+  FOR SELECT TO wellbridge_app
+  USING (public.wellbridge_can_read_review(review_id));
+
+-- Pathway administrators need a minimal directory of eligible verifier IDs
+-- for assignment. Do not expose email addresses through this lookup.
+CREATE OR REPLACE FUNCTION wellbridge_list_verifier_admins()
+RETURNS TABLE(admin_id uuid, display_name text)
+LANGUAGE plpgsql
+VOLATILE
+SECURITY DEFINER
+SET search_path = pg_catalog, public, wellbridge_private, pg_temp
+AS $verifier_directory$
+BEGIN
+  IF NOT public.wellbridge_has_any_role('platform_owner','pathway_administrator') THEN
+    RAISE EXCEPTION 'Pathway administrator permission is required';
+  END IF;
+  RETURN QUERY
+    SELECT a.id, a.display_name
+    FROM public.admin_identities a
+    WHERE a.account_status = 'active'
+      AND EXISTS (
+        SELECT 1 FROM public.admin_role_assignments r
+        WHERE r.admin_identity_id = a.id
+          AND r.role_name = 'pathway_verifier'
+          AND r.revoked_at IS NULL
+          AND (r.expires_at IS NULL OR r.expires_at > statement_timestamp())
+      )
+    ORDER BY a.display_name NULLS LAST, a.id;
+END;
+$verifier_directory$;
+REVOKE ALL ON FUNCTION wellbridge_list_verifier_admins() FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION wellbridge_list_verifier_admins() TO wellbridge_app;
+
 -- Evidence rows inherit the same assignment-aware visibility as their review.
 DROP POLICY IF EXISTS review_evidence_insert_authorised ON public.verification_review_evidence;
 CREATE POLICY review_evidence_insert_authorised ON public.verification_review_evidence
