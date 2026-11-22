@@ -356,6 +356,37 @@ CREATE POLICY verification_events_write_verifier_or_admin ON verification_events
   WITH CHECK (wellbridge_has_any_role('platform_owner','pathway_administrator','pathway_verifier'));
 
 
+-- Restrict verifier status transitions to work they are assigned to perform.
+CREATE OR REPLACE FUNCTION guard_review_workflow_transition()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = pg_catalog, public, pg_temp
+AS $
+BEGIN
+  IF NEW.review_status IS NOT DISTINCT FROM OLD.review_status THEN
+    RETURN NEW;
+  END IF;
+  IF NEW.review_status = 'cancelled'
+     AND NOT public.wellbridge_has_any_role('platform_owner','pathway_administrator') THEN
+    RAISE EXCEPTION 'Only a pathway administrator or platform owner may cancel a review';
+  END IF;
+  IF public.wellbridge_has_role('pathway_verifier')
+     AND NOT public.wellbridge_has_any_role('platform_owner','pathway_administrator')
+     AND NEW.review_status NOT IN ('in_progress','submitted') THEN
+    RAISE EXCEPTION 'A verifier may only move an assigned review into progress or submit it';
+  END IF;
+  IF public.wellbridge_has_role('pathway_verifier')
+     AND NOT public.wellbridge_has_any_role('platform_owner','pathway_administrator')
+     AND OLD.review_status NOT IN ('assigned','in_progress','changes_requested') THEN
+    RAISE EXCEPTION 'This review is not in a verifier-editable state';
+  END IF;
+  RETURN NEW;
+END;
+$;
+CREATE TRIGGER trg_guard_review_workflow_transition
+BEFORE UPDATE OF review_status ON verification_reviews
+FOR EACH ROW EXECUTE FUNCTION guard_review_workflow_transition();
+
 -- A client cannot set a review to an approval outcome directly. Such a state
 -- must be backed by the independently validated decision row inserted first.
 CREATE OR REPLACE FUNCTION guard_review_decision_state()
