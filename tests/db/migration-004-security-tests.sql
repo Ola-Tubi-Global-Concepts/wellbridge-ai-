@@ -262,6 +262,12 @@ DECLARE n integer;
 BEGIN
   SELECT count(*) INTO n FROM audit_log;
   IF n < 1 THEN RAISE EXCEPTION 'Auditor should read audit events'; END IF;
+  SELECT count(*) INTO n FROM verification_reviews;
+  IF n <> 2 THEN RAISE EXCEPTION 'Auditor should read review metadata; saw %', n; END IF;
+  SELECT count(*) INTO n FROM verification_review_evidence;
+  IF n <> 0 THEN RAISE EXCEPTION 'Audit-only role must not read source evidence; saw %', n; END IF;
+  SELECT count(*) INTO n FROM evidence_attachments;
+  IF n <> 0 THEN RAISE EXCEPTION 'Audit-only role must not read evidence attachments; saw %', n; END IF;
   BEGIN
     UPDATE audit_log SET action = 'tampered' WHERE id = (SELECT min(id) FROM audit_log);
     RAISE EXCEPTION 'Auditor unexpectedly updated the audit log';
