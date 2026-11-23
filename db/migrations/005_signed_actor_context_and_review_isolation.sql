@@ -389,15 +389,33 @@ CREATE POLICY reviews_read_authorised ON public.verification_reviews
   FOR SELECT TO wellbridge_app
   USING (public.wellbridge_can_read_review(id));
 
+-- Audit reviewers may inspect review/audit metadata but not source evidence
+-- or attachment content unless they also hold an operational review role.
 DROP POLICY IF EXISTS review_evidence_read_authorised ON public.verification_review_evidence;
 CREATE POLICY review_evidence_read_authorised ON public.verification_review_evidence
   FOR SELECT TO wellbridge_app
-  USING (public.wellbridge_can_read_review(review_id));
+  USING (
+    public.wellbridge_can_read_review(review_id)
+    AND NOT (
+      public.wellbridge_has_role('audit_reviewer')
+      AND NOT public.wellbridge_has_any_role(
+        'platform_owner','pathway_administrator','pathway_verifier','pathway_approver'
+      )
+    )
+  );
 
 DROP POLICY IF EXISTS attachments_read_authorised ON public.evidence_attachments;
 CREATE POLICY attachments_read_authorised ON public.evidence_attachments
   FOR SELECT TO wellbridge_app
-  USING (public.wellbridge_can_read_review(review_id));
+  USING (
+    public.wellbridge_can_read_review(review_id)
+    AND NOT (
+      public.wellbridge_has_role('audit_reviewer')
+      AND NOT public.wellbridge_has_any_role(
+        'platform_owner','pathway_administrator','pathway_verifier','pathway_approver'
+      )
+    )
+  );
 
 -- Verifier updates are constrained to their currently assigned review; an
 -- administrator may manage assignments. Existing trigger guards still enforce
