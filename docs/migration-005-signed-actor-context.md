@@ -51,7 +51,7 @@ The database login role must be a separate least-privilege login that is granted
 - A verifier can read and link evidence only for reviews assigned to that verifier.
 - A pathway administrator and platform owner can manage the operational review queue.
 - An approver can read reviews in the submitted/decision lifecycle for independent approval.
-- An audit reviewer can read permitted review and audit metadata, without mutation rights.
+- An audit-only reviewer can read review metadata and audit records, but cannot read source-evidence rows or evidence attachments; operational roles retain their separately authorised evidence access.
 - Review evidence and attachment reads inherit the parent review visibility.
 - Evidence insertion requires the actor to be authorised to read the parent review.
 
@@ -65,6 +65,7 @@ The disposable PostgreSQL CI suite applies migrations 001–005 and exercises th
 - assignment changes reject suspended identities and accounts without an active verifier role;
 - the final active platform-owner role cannot be revoked;
 - approval by a distinct approver;
+- audit-only reviewer can read review/audit metadata but cannot read source-evidence rows or evidence attachments;
 - role grant/revocation restrictions and audit immutability.
 
 Nonce records are intentionally retained beyond the 60-second assertion window to prevent replay. A DBA maintenance task may purge records older than an approved retention interval (at least 24 hours). Do not grant nonce-table DELETE to the application role.
